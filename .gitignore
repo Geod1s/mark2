@@ -1,0 +1,22 @@
+# .gitignore
+# Dependencies
+node_modules/
+.next/
+out/
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Supabase local development
+.supabase/
+
+# OS files
+.DS_Store
+*.log
+
+# IDE files
+.vscode/
+.idea/
