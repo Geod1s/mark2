@@ -37,6 +37,9 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+   /* Touch-friendly sizes */
+    --radius: 0.5rem;
+    --tap-highlight: rgba(0, 0, 0, 0.1);
 }
 
 .dark {
@@ -121,5 +124,56 @@
   }
   body {
     @apply bg-background text-foreground;
+     /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: none;
+    /* Better text rendering on mobile */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
+
+
+ /* Better mobile scrolling */
+  html {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+  }
+
+    /* Mobile tap highlights */
+  button,
+  a,
+  [role="button"] {
+    -webkit-tap-highlight-color: var(--tap-highlight);
+    touch-action: manipulation; /* Disable double-tap zoom on buttons */
+  }
+
+  /* Better mobile forms */
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* Prevent iOS zoom on focus */
+    touch-action: manipulation;
+  }
+
+
+@layer components {
+  /* Mobile-optimized buttons */
+  .btn-mobile {
+    @apply min-h-[44px] min-w-[44px] px-4 py-2 text-base;
+  }
+
+  /* Better touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Pull to refresh indicator (optional) */
+  .ptr-indicator {
+    @apply h-12 w-full flex items-center justify-center opacity-0 transition-opacity;
+  }
+  
+  .ptr-refreshing .ptr-indicator {
+    @apply opacity-100;
+  }
+}
 }
