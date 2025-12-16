@@ -213,13 +213,13 @@ const navigation = [
   //   icon: DollarSign,
   //   description: "Payment setup & history",
   // },
-  // {
-  //   id: "analytics",
-  //   name: "Analytics",
-  //   href: "/dashboard/analytics",
-  //   icon: BarChart,
-  //   description: "Sales reports & insights",
-  // },
+  {
+    id: "analytics",
+    name: "Analytics",
+    href: "/dashboard/analytics",
+    icon: BarChart,
+    description: "Sales reports & insights",
+  },
   // {
   //   id: "customers",
   //   name: "Customers",

@@ -26,8 +26,9 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
   const [description, setDescription] = useState(product?.description || "")
   const [price, setPrice] = useState(product?.price?.toString() || "")
   const [compareAtPrice, setCompareAtPrice] = useState(product?.compare_at_price?.toString() || "")
-  const [inventory, setInventory] = useState(
-    product?.inventory_count !== undefined ? product.inventory_count.toString() : "0"
+  // Changed from inventory_count to stock_quantity
+  const [stockQuantity, setStockQuantity] = useState(
+    product?.stock_quantity !== undefined ? product.stock_quantity.toString() : "0"
   )
   const [categoryId, setCategoryId] = useState(product?.category_id || "")
   const [imageUrl, setImageUrl] = useState(product?.images?.[0] || "")
@@ -123,7 +124,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
         description,
         price: parseFloat(price),
         compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : null,
-        inventory: parseInt(inventory),
+        stockQuantity: parseInt(stockQuantity),
         categoryId,
         imageUrl,
         productId: product?.id,
@@ -133,7 +134,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
       // Generate unique slug for new products
       const uniqueSlug = product?.slug || await generateUniqueSlug(name)
 
-      // Build product data object
+      // Build product data object - CHANGED inventory_count to stock_quantity
       const productData = {
         vendor_id: vendorId,
         name,
@@ -141,7 +142,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
         description: description || null,
         price: parseFloat(price),
         compare_at_price: compareAtPrice ? parseFloat(compareAtPrice) : null,
-        inventory_count: parseInt(inventory) || 0,
+        stock_quantity: parseInt(stockQuantity) || 0, // CHANGED: inventory_count → stock_quantity
         category_id: categoryId || null,
         images: imageUrl ? [imageUrl] : [],
         updated_at: new Date().toISOString()
@@ -223,7 +224,8 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
       {product && (
         <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-800">
           <p>Editing Product ID: {product.id}</p>
-          <p>Current Inventory: {product.inventory_count}</p>
+          {/* CHANGED: inventory_count → stock_quantity */}
+          <p>Current Stock: {product.stock_quantity !== undefined ? product.stock_quantity : product.inventory_count}</p>
         </div>
       )}
 
@@ -295,19 +297,19 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="inventory">Inventory</Label>
+          <Label htmlFor="stockQuantity">Stock Quantity</Label>
           <Input
-            id="inventory"
+            id="stockQuantity"
             type="number"
             min="0"
             required
-            value={inventory}
-            onChange={(e) => setInventory(e.target.value)}
+            value={stockQuantity}
+            onChange={(e) => setStockQuantity(e.target.value)}
             className="bg-secondary border-0"
           />
           {product && (
             <p className="text-xs text-muted-foreground">
-              Current stock: {inventory} units
+              Current stock: {stockQuantity} units
             </p>
           )}
         </div>
