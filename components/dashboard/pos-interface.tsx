@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useRefresh } from "@/hooks/use-refresh"
 import type { Vendor, Product } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +24,8 @@ import {
   Package
 } from "lucide-react"
 import { toast } from "sonner"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Grid3X3, List } from "lucide-react"
 
 interface CartItem {
   id: string
@@ -88,8 +91,22 @@ async function createPOSOrder(orderData: {
 
 export function POSInterface({ vendor, products }: POSInterfaceProps) {
   const [cart, setCart] = useState<CartItem[]>([])
+  // Store original products to reference original stock
+  const [originalProducts] = useState<Product[]>(products)
+  // Local products will have updated stock based on cart items
+  const [localProducts, setLocalProducts] = useState<Product[]>(() => {
+    // Initialize local products with stock adjusted for any items already in cart (though cart starts empty)
+    return products.map(product => {
+      const productWithStock = product as ProductWithStock;
+      return {
+        ...product,
+        stock_quantity: productWithStock.stock_quantity
+      };
+    });
+  })
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("products")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: "",
     phone: "",
@@ -97,9 +114,24 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
   })
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash")
   const [isProcessing, setIsProcessing] = useState(false)
+  const { refresh } = useRefresh()
+
+  // Calculate available stock based on original stock minus cart quantities
+  const productsWithAvailableStock = originalProducts.map(originalProduct => {
+    const cartItem = cart.find(item => item.product_id === originalProduct.id);
+    const cartQuantity = cartItem ? cartItem.quantity : 0;
+    const originalProductWithStock = originalProduct as ProductWithStock;
+    const originalStock = originalProductWithStock.stock_quantity || 0;
+    const availableStock = Math.max(0, originalStock - cartQuantity);
+
+    return {
+      ...originalProduct,
+      stock_quantity: availableStock
+    };
+  });
 
   // Filter products based on search
-  const filteredProducts = products.filter(product => 
+  const filteredProducts = productsWithAvailableStock.filter(product =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.description?.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -117,18 +149,24 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
   // Add product to cart
   const addToCart = (product: Product) => {
     const productWithStock = product as ProductWithStock
-    const stockQuantity = productWithStock.stock_quantity
-    
+    const originalStock = productWithStock.stock_quantity || 0
+
+    // Calculate current available stock based on cart
+    const existingCartItem = cart.find(item => item.product_id === product.id);
+    const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
+    const availableStock = originalStock - currentCartQuantity;
+
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.product_id === product.id)
-      
+
       if (existingItem) {
         // Check stock
-        if (stockQuantity !== undefined && existingItem.quantity >= stockQuantity) {
-          toast.error(`Only ${stockQuantity} items available`)
+        if (availableStock <= existingItem.quantity) {
+          toast.error(`Only ${availableStock + existingItem.quantity} items available`)
           return prevCart
         }
-        
+
+        // Increase quantity by 1
         return prevCart.map(item =>
           item.product_id === product.id
             ? { ...item, quantity: item.quantity + 1 }
@@ -136,11 +174,12 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
         )
       } else {
         // Check stock
-        if (stockQuantity !== undefined && stockQuantity < 1) {
+        if (availableStock < 1) {
           toast.error("Out of stock")
           return prevCart
         }
-        
+
+        // Add new item with quantity 1
         return [
           ...prevCart,
           {
@@ -150,7 +189,7 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
             price: product.price,
             quantity: 1,
             image: product.images?.[0],
-            stock_quantity: stockQuantity
+            stock_quantity: originalStock
           }
         ]
       }
@@ -162,17 +201,26 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
     setCart(prevCart => {
       const item = prevCart.find(i => i.id === itemId)
       if (!item) return prevCart
-      
+
+      // Get the original stock for this product
+      const originalProduct = originalProducts.find(p => p.id === item.product_id);
+      const originalStock = (originalProduct as ProductWithStock)?.stock_quantity || 0;
+
+      // Calculate available stock based on all items in cart except this one
+      const otherCartItems = prevCart.filter(i => i.id !== itemId && i.product_id === item.product_id);
+      const otherQuantity = otherCartItems.reduce((sum, cartItem) => sum + cartItem.quantity, 0);
+      const availableStock = originalStock - otherQuantity;
+
       // Check stock
-      if (item.stock_quantity !== undefined && newQuantity > item.stock_quantity) {
-        toast.error(`Only ${item.stock_quantity} items available`)
+      if (newQuantity > availableStock) {
+        toast.error(`Only ${availableStock} items available`)
         return prevCart
       }
-      
+
       if (newQuantity < 1) {
         return prevCart.filter(i => i.id !== itemId)
       }
-      
+
       return prevCart.map(i =>
         i.id === itemId ? { ...i, quantity: newQuantity } : i
       )
@@ -181,18 +229,19 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
 
   // Remove item from cart
   const removeFromCart = (itemId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== itemId))
+    setCart(prevCart => {
+      return prevCart.filter(item => item.id !== itemId)
+    })
   }
 
   // Clear cart
   const clearCart = () => {
-    setCart([])
+    setCart([]);
   }
 
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const tax = subtotal * 0.1 // 10% tax for example
-  const total = subtotal + tax
+  const total = subtotal
 
   // Handle payment
   const handlePayment = async () => {
@@ -256,11 +305,11 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
       // Calculate new stock
       const currentStock = product.stock_quantity || 0
       const newStock = Math.max(0, currentStock - item.quantity)
-      
+
       // Update stock in database
       const { error: updateError } = await supabase
         .from('products')
-        .update({ 
+        .update({
           stock_quantity: newStock,
           updated_at: new Date().toISOString()
         })
@@ -279,7 +328,6 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
       date: new Date().toLocaleString(),
       items: cart,
       subtotal,
-      tax,
       total,
       paymentMethod,
       customerInfo
@@ -296,6 +344,19 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
     // Clear cart and reset
     clearCart()
     setCustomerInfo({ name: "", phone: "", email: "" })
+
+    // Show success message and refresh the page to get updated stock from database
+    toast.success("Sale completed successfully!", {
+      action: {
+        label: "Print Receipt",
+        onClick: () => printReceipt(receiptData)
+      }
+    });
+
+    // Refresh the page to update product stock and clear any cached data
+    setTimeout(() => {
+      refresh()
+    }, 1000) // Delay slightly to allow for UI feedback
     
   } catch (error) {
     console.error("Payment error:", error)
@@ -358,10 +419,6 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
             <div>Subtotal:</div>
             <div>$${receiptData.subtotal.toFixed(2)}</div>
           </div>
-          <div class="total-row">
-            <div>Tax:</div>
-            <div>$${receiptData.tax.toFixed(2)}</div>
-          </div>
           <div class="total-row" style="font-weight: bold;">
             <div>Total:</div>
             <div>$${receiptData.total.toFixed(2)}</div>
@@ -393,29 +450,34 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
   // Quick add buttons for common quantities
   const quickAdd = (product: Product, quantity: number) => {
     const productWithStock = product as ProductWithStock
-    const stockQuantity = productWithStock.stock_quantity
-    
+    const originalStock = productWithStock.stock_quantity || 0
+
+    // Calculate current available stock based on cart
+    const existingCartItem = cart.find(item => item.product_id === product.id);
+    const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
+    const availableStock = originalStock - currentCartQuantity;
+
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.product_id === product.id)
-      
+
       if (existingItem) {
         const newQuantity = existingItem.quantity + quantity
-        if (stockQuantity !== undefined && newQuantity > stockQuantity) {
-          toast.error(`Only ${stockQuantity} items available`)
+        if (newQuantity > availableStock) {
+          toast.error(`Only ${availableStock} items available`)
           return prevCart
         }
-        
+
         return prevCart.map(item =>
           item.product_id === product.id
             ? { ...item, quantity: newQuantity }
             : item
         )
       } else {
-        if (stockQuantity !== undefined && quantity > stockQuantity) {
-          toast.error(`Only ${stockQuantity} items available`)
+        if (quantity > availableStock) {
+          toast.error(`Only ${availableStock} items available`)
           return prevCart
         }
-        
+
         return [
           ...prevCart,
           {
@@ -425,7 +487,7 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
             price: product.price,
             quantity,
             image: product.images?.[0],
-            stock_quantity: stockQuantity
+            stock_quantity: originalStock
           }
         ]
       }
@@ -436,9 +498,9 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
       {/* Left Panel - Products */}
       <div className="lg:col-span-2 flex flex-col">
-        {/* Search */}
-        <div className="mb-4">
-          <div className="relative">
+        {/* Search and View Toggle */}
+        <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search products by name or description..."
@@ -447,6 +509,20 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
               className="pl-10"
             />
           </div>
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(value) => value && setViewMode(value as "grid" | "list")}
+            defaultValue="grid"
+            className="flex-shrink-0"
+          >
+            <ToggleGroupItem value="grid" aria-label="Grid view">
+              <Grid3X3 className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="List view">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         {/* Product Categories Tabs */}
@@ -458,16 +534,29 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
           
           <TabsContent value="products" className="flex-1 overflow-hidden">
             <ScrollArea className="h-full pr-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onAdd={() => addToCart(product)}
-                    onQuickAdd={(qty) => quickAdd(product, qty)}
-                  />
-                ))}
-              </div>
+              {viewMode === "grid" ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {filteredProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAdd={() => addToCart(product)}
+                      onQuickAdd={(qty) => quickAdd(product, qty)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredProducts.map((product) => (
+                    <ProductListItem
+                      key={product.id}
+                      product={product}
+                      onAdd={() => addToCart(product)}
+                      onQuickAdd={(qty) => quickAdd(product, qty)}
+                    />
+                  ))}
+                </div>
+              )}
             </ScrollArea>
           </TabsContent>
           
@@ -476,16 +565,29 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
               {Object.entries(productsByCategory).map(([category, categoryProducts]) => (
                 <div key={category} className="mb-6">
                   <h3 className="font-semibold mb-3 text-lg">{category}</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {categoryProducts.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        onAdd={() => addToCart(product)}
-                        onQuickAdd={(qty) => quickAdd(product, qty)}
-                      />
-                    ))}
-                  </div>
+                  {viewMode === "grid" ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {categoryProducts.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onAdd={() => addToCart(product)}
+                          onQuickAdd={(qty) => quickAdd(product, qty)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {categoryProducts.map((product) => (
+                        <ProductListItem
+                          key={product.id}
+                          product={product}
+                          onAdd={() => addToCart(product)}
+                          onQuickAdd={(qty) => quickAdd(product, qty)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </ScrollArea>
@@ -586,10 +688,6 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span>${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tax (10%)</span>
-                <span>${tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-semibold text-lg border-t pt-2">
                 <span>Total</span>
@@ -733,7 +831,7 @@ function ProductCard({
                 <Plus className="h-3 w-3 mr-1" />
                 Add
               </Button>
-              
+
               <Button
                 size="sm"
                 variant="outline"
@@ -742,7 +840,7 @@ function ProductCard({
               >
                 2x
               </Button>
-              
+
               <Button
                 size="sm"
                 variant="outline"
@@ -753,7 +851,7 @@ function ProductCard({
               </Button>
             </>
           )}
-          
+
           {isOutOfStock && (
             <Button
               size="sm"
@@ -765,6 +863,101 @@ function ProductCard({
             </Button>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Product List Item Component
+function ProductListItem({
+  product,
+  onAdd,
+  onQuickAdd
+}: {
+  product: Product
+  onAdd: () => void
+  onQuickAdd: (quantity: number) => void
+}) {
+  const productWithStock = product as ProductWithStock
+  const stockQuantity = productWithStock.stock_quantity
+  const isOutOfStock = stockQuantity !== undefined && stockQuantity <= 0
+
+  return (
+    <div className={`border rounded-lg p-3 flex items-center gap-4 hover:shadow-md transition-shadow ${isOutOfStock ? 'opacity-50' : ''}`}>
+      {product.images?.[0] ? (
+        <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-md bg-secondary">
+          <img
+            src={product.images[0]}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="w-16 h-16 flex-shrink-0 bg-secondary rounded-md flex items-center justify-center">
+          <Package className="h-6 w-6 text-muted-foreground" />
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-start">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate">{product.name}</p>
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {product.description || 'No description'}
+            </p>
+          </div>
+
+          <div className="text-right ml-2">
+            <p className="font-semibold">${product.price.toFixed(2)}</p>
+            {stockQuantity !== undefined && (
+              <p className={`text-xs ${isOutOfStock ? 'text-red-500' : 'text-muted-foreground'}`}>
+                Stock: {stockQuantity}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1 ml-2">
+        {!isOutOfStock && (
+          <>
+            <Button
+              size="sm"
+              onClick={onAdd}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onQuickAdd(2)}
+              disabled={stockQuantity !== undefined && stockQuantity < 2}
+            >
+              2x
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onQuickAdd(5)}
+              disabled={stockQuantity !== undefined && stockQuantity < 5}
+            >
+              5x
+            </Button>
+          </>
+        )}
+
+        {isOutOfStock && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled
+          >
+            Out of Stock
+          </Button>
+        )}
       </div>
     </div>
   )

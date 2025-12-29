@@ -1,10 +1,14 @@
 import { createClient } from "@/lib/supabase/server"
 import { DashboardLayout } from "@/components/dashboard/layout"
 import { ProductsList } from "@/components/dashboard/products-list"
+import { InventoryDashboard } from "@/components/dashboard/inventory-dashboard"
+import { InventoryTrigger } from "@/components/dashboard/inventory-trigger"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { calculateInventoryMetrics } from "@/lib/inventory-utils"
+import { getVendorInventoryThresholds } from "@/lib/inventory-actions"
 
 export default async function ProductsPage() {
   const supabase = await createClient()
@@ -28,6 +32,16 @@ export default async function ProductsPage() {
     .eq("vendor_id", vendor.id)
     .order("created_at", { ascending: false })
 
+  // Get vendor-specific inventory thresholds
+  const { lowStockThreshold, overstockThreshold } = await getVendorInventoryThresholds(vendor.id);
+
+  // Calculate inventory metrics
+  const inventoryMetrics = calculateInventoryMetrics(
+    products || [],
+    lowStockThreshold,
+    overstockThreshold
+  )
+
   return (
     <DashboardLayout vendor={vendor}>
       <div className="space-y-6">
@@ -43,6 +57,22 @@ export default async function ProductsPage() {
             </Button>
           </Link>
         </div>
+
+        {/* Inventory Dashboard */}
+        <InventoryDashboard
+          totalProducts={inventoryMetrics.totalProducts}
+          outOfStockCount={inventoryMetrics.outOfStockCount}
+          lowStockCount={inventoryMetrics.lowStockCount}
+          overstockCount={inventoryMetrics.overstockCount}
+          lowStockThreshold={lowStockThreshold}
+          overstockThreshold={overstockThreshold}
+        />
+
+        {/* Inventory Triggers */}
+        <InventoryTrigger
+          initialLowStockThreshold={lowStockThreshold}
+          initialOverstockThreshold={overstockThreshold}
+        />
 
         <ProductsList products={products || []} vendorId={vendor.id} />
       </div>

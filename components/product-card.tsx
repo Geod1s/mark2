@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { InventoryAlert } from "./inventory-alert"
 import type { Product, Vendor } from "@/lib/types"
 
 interface ProductCardProps {
@@ -9,6 +10,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const imageUrl =
     product.images?.[0] || `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(product.name)}`
   const hasDiscount = product.compare_at_price && product.compare_at_price > product.price
+  const inventoryCount = product.inventory_count || 0
 
   return (
     <Link
@@ -26,6 +28,9 @@ export function ProductCard({ product }: ProductCardProps) {
             Sale
           </div>
         )}
+        <div className="absolute bottom-2 left-2 right-2">
+          <InventoryAlert inventoryCount={inventoryCount} />
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col p-4">

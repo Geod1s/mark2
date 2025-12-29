@@ -2,7 +2,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -32,8 +32,29 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
   )
   const [categoryId, setCategoryId] = useState(product?.category_id || "")
   const [imageUrl, setImageUrl] = useState(product?.images?.[0] || "")
+  const [productionDate, setProductionDate] = useState(product?.production_date || "")
+  const [expirationDate, setExpirationDate] = useState(product?.expiration_date || "")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Effect to ensure expiration date is not before production date
+  useEffect(() => {
+    if (productionDate && expirationDate) {
+      const prodDate = new Date(productionDate);
+      const expDate = new Date(expirationDate);
+
+      if (expDate < prodDate) {
+        // Set expiration date to production date if it's earlier
+        setExpirationDate(productionDate);
+        setError("Expiration date was adjusted to not be before production date.");
+      } else {
+        // Clear error if dates are valid (but only if it's related to date validation)
+        if (error && error.includes("cannot be before")) {
+          setError(null);
+        }
+      }
+    }
+  }, [productionDate, error]);
 
   // Enhanced slug generation function
   const generateSlug = (name: string) => {
@@ -115,6 +136,21 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
     setIsLoading(true)
     setError(null)
 
+    // Validate date range: expiration date should not be before production date
+    if (productionDate && expirationDate) {
+      const prodDate = new Date(productionDate);
+      const expDate = new Date(expirationDate);
+
+      if (expDate < prodDate) {
+        setError("Expiration date cannot be before production date.");
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // Additional validation: if only one date is provided, we might want to validate further
+    // For now, we'll allow having just one of the dates
+
     const supabase = createClient()
 
     try {
@@ -135,7 +171,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
       const uniqueSlug = product?.slug || await generateUniqueSlug(name)
 
       // Build product data object - CHANGED inventory_count to stock_quantity
-      const productData = {
+      const productData: any = {
         vendor_id: vendorId,
         name,
         slug: uniqueSlug,
@@ -148,15 +184,24 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
         updated_at: new Date().toISOString()
       }
 
+      // Only add date fields if they have values (to avoid database errors if columns don't exist yet)
+      if (productionDate) {
+        productData.production_date = productionDate;
+      }
+      if (expirationDate) {
+        productData.expiration_date = expirationDate;
+      }
+
       console.log("Product data to send:", productData)
 
       if (product) {
         // For update, remove slug and keep original
-        const { slug, ...updateData } = productData
-        
+        const updateData: any = { ...productData };
+        delete updateData.slug;
+
         console.log("Update data (without slug):", updateData)
         console.log("Updating product ID:", product.id)
-        
+
         const { data, error } = await supabase
           .from("products")
           .update(updateData)
@@ -167,15 +212,41 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
 
         if (error) {
           console.error("Update error details:", error)
-          setError(`Failed to update product: ${error.message}`)
-          setIsLoading(false)
-          return
+
+          // If the error is due to unknown columns, try updating without the date fields
+          if (error.message && (error.message.includes('production_date') || error.message.includes('expiration_date'))) {
+            // Create update data without date fields
+            const updateDataWithoutDates: any = { ...updateData };
+            delete updateDataWithoutDates.production_date;
+            delete updateDataWithoutDates.expiration_date;
+
+            console.log("Retrying update without date fields:", updateDataWithoutDates);
+
+            const { data: retryData, error: retryError } = await supabase
+              .from("products")
+              .update(updateDataWithoutDates)
+              .eq("id", product.id)
+              .select()
+
+            if (retryError) {
+              console.error("Retry update also failed:", retryError)
+              setError(`Failed to update product: ${retryError.message}`)
+              setIsLoading(false)
+              return
+            }
+
+            console.log("Retry update successful:", retryData);
+          } else {
+            setError(`Failed to update product: ${error.message}`)
+            setIsLoading(false)
+            return
+          }
         }
 
         console.log("Update successful, data returned:", data)
       } else {
         // Create new product with unique slug
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from("products")
           .insert(productData)
           .select()
@@ -183,17 +254,45 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
         console.log("Create response:", { data, error })
 
         if (error) {
+          console.error("Create error details:", error);
+
+          // If the error is due to unknown columns, try inserting without the date fields
+          if (error.message && (error.message.includes('production_date') || error.message.includes('expiration_date'))) {
+            // Create insert data without date fields
+            const insertDataWithoutDates: any = { ...productData };
+            delete insertDataWithoutDates.production_date;
+            delete insertDataWithoutDates.expiration_date;
+
+            console.log("Retrying insert without date fields:", insertDataWithoutDates);
+
+            const result = await supabase
+              .from("products")
+              .insert(insertDataWithoutDates)
+              .select()
+
+            data = result.data;
+            error = result.error;
+
+            if (error) {
+              console.error("Retry insert also failed:", error)
+              setError(`Failed to create product: ${error.message}`)
+              setIsLoading(false)
+              return
+            }
+
+            console.log("Retry insert successful:", data);
+          }
           // If still getting duplicate, try with timestamp
-          if (error.code === "23505" && error.message.includes("slug")) {
+          else if (error.code === "23505" && error.message.includes("slug")) {
             const timestamp = Date.now()
             const fallbackSlug = `${generateSlug(name)}-${timestamp}`
-            
+
             const { error: retryError } = await supabase
               .from("products")
               .insert({
                 ...productData,
                 slug: fallbackSlug
-              })
+              } as any)
 
             if (retryError) {
               setError("Failed to create product. Please try a different name.")
@@ -328,6 +427,69 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="productionDate">Production Date</Label>
+          <Input
+            id="productionDate"
+            type="date"
+            value={productionDate}
+            onChange={(e) => {
+              const newProductionDate = e.target.value;
+              setProductionDate(newProductionDate);
+
+              // If expiration date exists and is before new production date, clear it or adjust it
+              if (expirationDate && newProductionDate) {
+                const newProdDate = new Date(newProductionDate);
+                const expDate = new Date(expirationDate);
+
+                if (expDate < newProdDate) {
+                  // Automatically set expiration date to production date if it's invalid
+                  setExpirationDate(newProductionDate);
+                  setError(null); // Clear any error since we're auto-correcting
+                }
+              }
+            }}
+            className="bg-secondary border-0"
+          />
+          <p className="text-xs text-muted-foreground">
+            Date when the product was manufactured/produced
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="expirationDate">Expiration Date</Label>
+          <Input
+            id="expirationDate"
+            type="date"
+            value={expirationDate}
+            onChange={(e) => {
+              const newExpirationDate = e.target.value;
+              if (productionDate && newExpirationDate) {
+                const prodDate = new Date(productionDate);
+                const expDate = new Date(newExpirationDate);
+
+                if (expDate < prodDate) {
+                  setError("Expiration date cannot be before production date.");
+                  return;
+                } else {
+                  // Clear the error if dates are valid (but only if it's related to date validation)
+                  if (error && error.includes("cannot be before")) {
+                    setError(null);
+                  }
+                }
+              }
+              setExpirationDate(newExpirationDate);
+            }}
+            min={productionDate} // Set minimum date to production date
+            className="bg-secondary border-0"
+          />
+          <p className="text-xs text-muted-foreground">
+            Date when the product expires/should not be used after
+          </p>
         </div>
       </div>
 

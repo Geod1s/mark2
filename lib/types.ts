@@ -52,6 +52,8 @@ export interface Product {
   category?: Category
   stock_quantity?: number
   sku?: string
+  production_date?: string
+  expiration_date?: string
 }
 
 export interface Order {
@@ -108,4 +110,57 @@ export interface ShippingAddress {
   state: string
   postal_code: string
   country: string
+}
+
+export interface InventoryLocation {
+  id: string
+  vendor_id: string
+  name: string
+  type: 'warehouse' | 'store' | 'distribution_center' | 'custom'
+  address: string
+  city: string
+  state: string
+  postal_code: string
+  country: string
+  is_active: boolean
+  is_pickup_location: boolean
+  is_shipping_origin: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface InventoryLocationProduct {
+  id: string
+  location_id: string
+  product_id: string
+  quantity: number
+  reserved_quantity: number
+  available_quantity: number
+  created_at: string
+  updated_at: string
+}
+
+export interface InventoryMovement {
+  id: string
+  product_id: string
+  from_location_id?: string
+  to_location_id?: string
+  quantity: number
+  movement_type: 'inbound' | 'outbound' | 'transfer' | 'adjustment'
+  reason: string
+  reference_id?: string
+  created_at: string
+  created_by: string
+}
+
+export interface InventorySyncConfig {
+  id: string
+  vendor_id: string
+  channel_type: 'ecommerce' | 'marketplace' | 'pos' | 'custom'
+  channel_id: string
+  sync_enabled: boolean
+  sync_frequency: 'real_time' | 'hourly' | 'daily' | 'manual'
+  last_sync_at?: string
+  created_at: string
+  updated_at: string
 }

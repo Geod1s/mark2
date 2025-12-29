@@ -305,28 +305,122 @@ export function OrdersList({ orders: initialOrders }: OrdersListProps) {
         
         // For STRIPE orders (already paid when created)
         if (orderType === 'stripe') {
-          // If changing TO cancelled: Use server RPC to perform an atomic, idempotent refund
-          if (newStatus === 'cancelled' && oldStatus !== 'cancelled') {
-            console.log("Stripe order cancelled - invoking server refund RPC")
+          // Handle status transitions for stripe orders
+          // If changing FROM paid TO cancelled: Refund stock (only one refund regardless of path)
+          if (oldStatus === 'paid' && newStatus === 'cancelled') {
+            console.log("Stripe order paid -> cancelled - refunding stock")
 
             try {
               const { error: rpcError } = await supabase.rpc('refund_order_stock', { p_order_id: orderId })
               if (rpcError) {
-                console.error('RPC refund_order_stock failed:', rpcError)
+                console.log('RPC refund_order_stock not available, using fallback for stripe order:', rpcError)
+
+                // Fallback: manually refund stock if RPC fails
+                console.log("Falling back to manual stock refund for stripe order")
+                for (const item of orderItems) {
+                  const productId = item.product_id
+                  const quantity = Number(item.quantity) || 0
+
+                  console.log(`Processing stripe item for refund: product_id=${productId}, quantity=${quantity}`)
+
+                  if (!productId) {
+                    console.warn("Item missing product ID, skipping:", item)
+                    continue
+                  }
+
+                  stockUpdates.push({
+                    productId,
+                    quantityChange: quantity, // Positive to increase stock
+                    reason: 'stripe_cancelled_refund'
+                  })
+                }
               } else {
                 console.log('RPC refund_order_stock completed')
                 appliedRefund = true
               }
             } catch (rpcErr) {
-              console.error('RPC call error:', rpcErr)
-            }
+              console.log('RPC call error, using fallback for stripe order:', rpcErr)
 
-            // We already updated stock server-side; set success and local state below
+              // Fallback: manually refund stock if RPC fails
+              console.log("Falling back to manual stock refund for stripe order")
+              for (const item of orderItems) {
+                const productId = item.product_id
+                const quantity = Number(item.quantity) || 0
+
+                console.log(`Processing stripe item for refund: product_id=${productId}, quantity=${quantity}`)
+
+                if (!productId) {
+                  console.warn("Item missing product ID, skipping:", item)
+                  continue
+                }
+
+                stockUpdates.push({
+                  productId,
+                  quantityChange: quantity, // Positive to increase stock
+                  reason: 'stripe_cancelled_refund'
+                })
+              }
+            }
           }
-          
+          // If changing TO cancelled (but not from paid): Use server RPC to perform an atomic, idempotent refund
+          else if (newStatus === 'cancelled' && oldStatus !== 'cancelled' && oldStatus !== 'paid') {
+            console.log("Stripe order cancelled (not from paid) - invoking server refund RPC")
+
+            try {
+              const { error: rpcError } = await supabase.rpc('refund_order_stock', { p_order_id: orderId })
+              if (rpcError) {
+                console.log('RPC refund_order_stock not available, using fallback for stripe order:', rpcError)
+
+                // Fallback: manually refund stock if RPC fails
+                console.log("Falling back to manual stock refund for stripe order")
+                for (const item of orderItems) {
+                  const productId = item.product_id
+                  const quantity = Number(item.quantity) || 0
+
+                  console.log(`Processing stripe item for refund: product_id=${productId}, quantity=${quantity}`)
+
+                  if (!productId) {
+                    console.warn("Item missing product ID, skipping:", item)
+                    continue
+                  }
+
+                  stockUpdates.push({
+                    productId,
+                    quantityChange: quantity, // Positive to increase stock
+                    reason: 'stripe_cancelled_refund'
+                  })
+                }
+              } else {
+                console.log('RPC refund_order_stock completed')
+                appliedRefund = true
+              }
+            } catch (rpcErr) {
+              console.log('RPC call error, using fallback for stripe order:', rpcErr)
+
+              // Fallback: manually refund stock if RPC fails
+              console.log("Falling back to manual stock refund for stripe order")
+              for (const item of orderItems) {
+                const productId = item.product_id
+                const quantity = Number(item.quantity) || 0
+
+                console.log(`Processing stripe item for refund: product_id=${productId}, quantity=${quantity}`)
+
+                if (!productId) {
+                  console.warn("Item missing product ID, skipping:", item)
+                  continue
+                }
+
+                stockUpdates.push({
+                  productId,
+                  quantityChange: quantity, // Positive to increase stock
+                  reason: 'stripe_cancelled_refund'
+                })
+              }
+            }
+          }
           // If changing FROM cancelled to another status: Decrease stock for all items
           // (This handles the case where someone accidentally cancels and wants to undo)
-          if (oldStatus === 'cancelled' && newStatus !== 'cancelled') {
+          else if (oldStatus === 'cancelled' && newStatus !== 'cancelled') {
             console.log("Stripe order uncancelled - attempting to re-apply charge (idempotent)")
 
             const wasRefunded = !!(dbOrder && dbOrder.stock_refunded)
@@ -358,8 +452,68 @@ export function OrdersList({ orders: initialOrders }: OrdersListProps) {
         if (orderType === 'cash') {
           console.log("Processing cash order stock adjustments")
 
+          // If changing FROM paid TO cancelled: Increase stock (refund when cancelling paid order)
+          if (oldStatus === 'paid' && newStatus === 'cancelled') {
+            console.log("Cash order paid -> cancelled - refunding stock")
+
+            try {
+              const { error: rpcError } = await supabase.rpc('refund_order_stock', { p_order_id: orderId })
+              if (rpcError) {
+                console.log('RPC refund_order_stock not available, using fallback for cash order:', rpcError)
+
+                // Fallback: manually refund stock if RPC fails
+                console.log("Falling back to manual stock refund for cash order")
+                for (const item of orderItems) {
+                  const productId = item.product_id || item.id
+                  const quantity = Number(item.quantity) || 0
+
+                  console.log(`Processing cash item for refund: product_id=${productId}, quantity=${quantity}`)
+
+                  if (!productId) {
+                    console.warn("Item missing product ID, skipping:", item)
+                    continue
+                  }
+
+                  stockUpdates.push({
+                    productId,
+                    quantityChange: quantity, // Positive to increase stock
+                    reason: 'cash_cancelled_refund'
+                  })
+                }
+              } else {
+                console.log('RPC refund_order_stock completed for cash order')
+                appliedRefund = true
+              }
+            } catch (rpcErr) {
+              console.log('RPC call error, using fallback for cash order:', rpcErr)
+
+              // Fallback: manually refund stock if RPC fails
+              console.log("Falling back to manual stock refund for cash order")
+              for (const item of orderItems) {
+                const productId = item.product_id || item.id
+                const quantity = Number(item.quantity) || 0
+
+                console.log(`Processing cash item for refund: product_id=${productId}, quantity=${quantity}`)
+
+                if (!productId) {
+                  console.warn("Item missing product ID, skipping:", item)
+                  continue
+                }
+
+                stockUpdates.push({
+                  productId,
+                  quantityChange: quantity, // Positive to increase stock
+                  reason: 'cash_cancelled_refund'
+                })
+              }
+            }
+          }
+          // If changing TO cancelled (but not from paid): No stock adjustment needed for unpaid orders
+          else if (newStatus === 'cancelled' && oldStatus !== 'cancelled' && oldStatus !== 'paid') {
+            console.log("Unpaid cash order cancelled - no stock adjustment needed")
+          }
           // If changing TO paid: Decrease stock (customer paid)
-          if (newStatus === 'paid' && oldStatus !== 'paid') {
+          else if (newStatus === 'paid' && oldStatus !== 'paid') {
             console.log("Cash order marked as paid - decreasing stock")
 
             for (const item of orderItems) {
@@ -381,17 +535,16 @@ export function OrdersList({ orders: initialOrders }: OrdersListProps) {
               })
             }
           }
-          
-          // If changing FROM paid to another status: Increase stock (undo payment)
-          if (oldStatus === 'paid' && newStatus !== 'paid') {
+          // If changing FROM paid to another status (but not cancelled): Increase stock (undo payment)
+          else if (oldStatus === 'paid' && newStatus !== 'paid' && newStatus !== 'cancelled') {
             console.log("Cash order unmarked as paid - increasing stock (undo payment)")
-            
+
             for (const item of orderItems) {
               const productId = item.product_id || item.id
               const quantity = Number(item.quantity) || 0
-              
+
               console.log(`Processing cash item: product_id=${productId}, quantity=${quantity}`)
-              
+
               if (!productId) {
                 console.warn("Item missing product ID, skipping:", item)
                 continue
@@ -402,27 +555,6 @@ export function OrdersList({ orders: initialOrders }: OrdersListProps) {
                 quantityChange: quantity, // Positive to increase stock
                 reason: 'cash_unpaid'
               })
-            }
-          }
-          
-          // If changing TO cancelled for cash orders:
-          // Use server RPC to perform an idempotent refund when appropriate
-          if (newStatus === 'cancelled' && oldStatus !== 'cancelled') {
-            if (oldStatus === 'paid') {
-              console.log("Paid cash order cancelled - invoking server refund RPC")
-              try {
-                const { error: rpcError } = await supabase.rpc('refund_order_stock', { p_order_id: orderId })
-                if (rpcError) {
-                  console.error('RPC refund_order_stock failed for cash order:', rpcError)
-                } else {
-                  console.log('RPC refund_order_stock completed for cash order')
-                  appliedRefund = true
-                }
-              } catch (rpcErr) {
-                console.error('RPC call error:', rpcErr)
-              }
-            } else {
-              console.log("Unpaid cash order cancelled - no stock adjustment needed")
             }
           }
         }

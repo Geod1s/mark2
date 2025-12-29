@@ -39,7 +39,7 @@ export default function SignUpPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -49,10 +49,27 @@ export default function SignUpPage() {
           },
         },
       })
+
       if (error) throw error
-      router.push("/auth/sign-up-success")
+
+      // Check if user was created and email was sent
+      if (data.user) {
+        // If user is created but needs email confirmation
+        if (data.user.identities && data.user.identities.length === 0) {
+          // This means the email might already be taken
+          setError("Email already registered or invalid")
+          setIsLoading(false)
+          return
+        }
+
+        // Redirect to success page to inform user about email confirmation
+        router.push("/auth/sign-up-success")
+      } else {
+        // In case the response doesn't contain user data but no error was thrown
+        router.push("/auth/sign-up-success")
+      }
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      setError(error instanceof Error ? error.message : "An error occurred during sign up")
     } finally {
       setIsLoading(false)
     }
@@ -60,7 +77,7 @@ export default function SignUpPage() {
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
-      <div className="p-6">
+      {/* <div className="p-6">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -68,7 +85,7 @@ export default function SignUpPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Marketplace
         </Link>
-      </div>
+      </div> */}
 
       <div className="flex flex-1 items-center justify-center px-6 pb-12">
         <div className="w-full max-w-sm space-y-8">
@@ -167,3 +184,4 @@ export default function SignUpPage() {
     </div>
   )
 }
+

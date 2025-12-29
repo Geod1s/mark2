@@ -223,3 +223,218 @@ CREATE POLICY "Users can update own cart"
 CREATE POLICY "Users can delete from own cart"
   ON cart_items FOR DELETE
   USING (auth.uid() = user_id);
+
+-- ============================================
+-- INVENTORY LOCATIONS POLICIES
+-- ============================================
+-- Vendors can view their own inventory locations
+CREATE POLICY "Vendors can view own inventory locations"
+  ON inventory_locations FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM vendors
+      WHERE vendors.id = inventory_locations.vendor_id
+      AND vendors.user_id = auth.uid()
+    )
+  );
+
+-- Vendors can insert inventory locations for their store
+CREATE POLICY "Vendors can insert own inventory locations"
+  ON inventory_locations FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM vendors
+      WHERE vendors.id = inventory_locations.vendor_id
+      AND vendors.user_id = auth.uid()
+    )
+  );
+
+-- Vendors can update their own inventory locations
+CREATE POLICY "Vendors can update own inventory locations"
+  ON inventory_locations FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM vendors
+      WHERE vendors.id = inventory_locations.vendor_id
+      AND vendors.user_id = auth.uid()
+    )
+  );
+
+-- Vendors can delete their own inventory locations
+CREATE POLICY "Vendors can delete own inventory locations"
+  ON inventory_locations FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM vendors
+      WHERE vendors.id = inventory_locations.vendor_id
+      AND vendors.user_id = auth.uid()
+    )
+  );
+
+-- ============================================
+-- INVENTORY LOCATION PRODUCTS POLICIES
+-- ============================================
+-- Vendors can view inventory at their locations
+CREATE POLICY "Vendors can view inventory at own locations"
+  ON inventory_location_products FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM inventory_locations
+      WHERE inventory_locations.id = inventory_location_products.location_id
+      AND EXISTS (
+        SELECT 1 FROM vendors
+        WHERE vendors.id = inventory_locations.vendor_id
+        AND vendors.user_id = auth.uid()
+      )
+    )
+  );
+
+-- Vendors can insert inventory for their locations
+CREATE POLICY "Vendors can insert inventory for own locations"
+  ON inventory_location_products FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM inventory_locations
+      WHERE inventory_locations.id = inventory_location_products.location_id
+      AND EXISTS (
+        SELECT 1 FROM vendors
+        WHERE vendors.id = inventory_locations.vendor_id
+        AND vendors.user_id = auth.uid()
+      )
+    )
+  );
+
+-- Vendors can update inventory at their locations
+CREATE POLICY "Vendors can update inventory at own locations"
+  ON inventory_location_products FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM inventory_locations
+      WHERE inventory_locations.id = inventory_location_products.location_id
+      AND EXISTS (
+        SELECT 1 FROM vendors
+        WHERE vendors.id = inventory_locations.vendor_id
+        AND vendors.user_id = auth.uid()
+      )
+    )
+  );
+
+-- ============================================
+-- INVENTORY MOVEMENTS POLICIES
+-- ============================================
+-- Vendors can view movements for their products/locations
+CREATE POLICY "Vendors can view inventory movements for own products/locations"
+  ON inventory_movements FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM products
+      WHERE products.id = inventory_movements.product_id
+      AND EXISTS (
+        SELECT 1 FROM vendors
+        WHERE vendors.id = products.vendor_id
+        AND vendors.user_id = auth.uid()
+      )
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM inventory_locations
+      WHERE inventory_locations.id = inventory_movements.from_location_id
+      AND EXISTS (
+        SELECT 1 FROM vendors
+        WHERE vendors.id = inventory_locations.vendor_id
+        AND vendors.user_id = auth.uid()
+      )
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM inventory_locations
+      WHERE inventory_locations.id = inventory_movements.to_location_id
+      AND EXISTS (
+        SELECT 1 FROM vendors
+        WHERE vendors.id = inventory_locations.vendor_id
+        AND vendors.user_id = auth.uid()
+      )
+    )
+  );
+
+-- Vendors can insert movements for their products/locations
+CREATE POLICY "Vendors can insert inventory movements for own products/locations"
+  ON inventory_movements FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM products
+      WHERE products.id = inventory_movements.product_id
+      AND EXISTS (
+        SELECT 1 FROM vendors
+        WHERE vendors.id = products.vendor_id
+        AND vendors.user_id = auth.uid()
+      )
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM inventory_locations
+      WHERE inventory_locations.id = inventory_movements.from_location_id
+      AND EXISTS (
+        SELECT 1 FROM vendors
+        WHERE vendors.id = inventory_locations.vendor_id
+        AND vendors.user_id = auth.uid()
+      )
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM inventory_locations
+      WHERE inventory_locations.id = inventory_movements.to_location_id
+      AND EXISTS (
+        SELECT 1 FROM vendors
+        WHERE vendors.id = inventory_locations.vendor_id
+        AND vendors.user_id = auth.uid()
+      )
+    )
+  );
+
+-- ============================================
+-- INVENTORY SYNC CONFIGS POLICIES
+-- ============================================
+-- Vendors can view their own sync configs
+CREATE POLICY "Vendors can view own sync configs"
+  ON inventory_sync_configs FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM vendors
+      WHERE vendors.id = inventory_sync_configs.vendor_id
+      AND vendors.user_id = auth.uid()
+    )
+  );
+
+-- Vendors can insert sync configs for their store
+CREATE POLICY "Vendors can insert own sync configs"
+  ON inventory_sync_configs FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM vendors
+      WHERE vendors.id = inventory_sync_configs.vendor_id
+      AND vendors.user_id = auth.uid()
+    )
+  );
+
+-- Vendors can update their own sync configs
+CREATE POLICY "Vendors can update own sync configs"
+  ON inventory_sync_configs FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM vendors
+      WHERE vendors.id = inventory_sync_configs.vendor_id
+      AND vendors.user_id = auth.uid()
+    )
+  );
+
+-- Vendors can delete their own sync configs
+CREATE POLICY "Vendors can delete own sync configs"
+  ON inventory_sync_configs FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM vendors
+      WHERE vendors.id = inventory_sync_configs.vendor_id
+      AND vendors.user_id = auth.uid()
+    )
+  );

@@ -46,15 +46,19 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
     router.push(`${pathname}?${createQueryString("sort", value)}`)
   }
 
+  const handleInventoryStatusChange = (value: string) => {
+    router.push(`${pathname}?${createQueryString("inventory", value === "all" ? "" : value)}`)
+  }
+
   const clearFilters = () => {
     setSearchValue("")
     router.push(pathname)
   }
 
-  const hasFilters = searchParams.get("search") || searchParams.get("category") || searchParams.get("sort")
+  const hasFilters = searchParams.get("search") || searchParams.get("category") || searchParams.get("sort") || searchParams.get("inventory")
 
   return (
-    <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div className="mt-6 flex flex-wrap gap-4 sm:flex-row sm:items-center">
       <form onSubmit={handleSearch} className="relative flex-1 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -66,7 +70,7 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
         />
       </form>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Select value={searchParams.get("category") || "all"} onValueChange={handleCategoryChange}>
           <SelectTrigger className="w-[160px] bg-secondary border-0">
             <SelectValue placeholder="Category" />
@@ -78,6 +82,19 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
                 {category.name}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={searchParams.get("inventory") || "all"} onValueChange={handleInventoryStatusChange}>
+          <SelectTrigger className="w-[160px] bg-secondary border-0">
+            <SelectValue placeholder="Inventory Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Inventory</SelectItem>
+            <SelectItem value="in-stock">In Stock</SelectItem>
+            <SelectItem value="low-stock">Low Stock</SelectItem>
+            <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+            <SelectItem value="overstock">Overstock</SelectItem>
           </SelectContent>
         </Select>
 

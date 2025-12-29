@@ -221,6 +221,13 @@ const navigation = [
     description: "Sales reports & insights",
   },
   // {
+  //   id: "inventory",
+  //   name: "Inventory",
+  //   href: "/dashboard/inventory",
+  //   icon: Package,
+  //   description: "Manage your inventory",
+  // },
+  // {
   //   id: "customers",
   //   name: "Customers",
   //   href: "/dashboard/customers",
@@ -234,6 +241,15 @@ const navigation = [
     icon: Settings,
     description: "Store configuration",
   },
+
+  {
+    id: "logout",
+    name: "Log out",
+    href: "/dashboard/logout",
+    icon: LogOut,
+    description: "Sign out of your account",
+  }
+
 ]
 
 export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
@@ -372,7 +388,7 @@ export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/auth/logout">
+                  <Link href="/dashboard/logout">
                     <LogOut className="mr-2 h-4 w-4" />
                     Log out
                   </Link>

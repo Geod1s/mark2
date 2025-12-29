@@ -16,6 +16,23 @@ interface ProductsListProps {
   vendorId: string
 }
 
+// Helper function to check if expiration date has passed
+const isExpired = (expirationDate: string): boolean => {
+  const today = new Date()
+  const expDate = new Date(expirationDate)
+  return expDate < today
+}
+
+// Helper function to format date consistently
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
 export function ProductsList({ products: initialProducts, vendorId }: ProductsListProps) {
   const [products, setProducts] = useState(initialProducts)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -64,6 +81,7 @@ export function ProductsList({ products: initialProducts, vendorId }: ProductsLi
             <TableHead>Category</TableHead>
             <TableHead>Price</TableHead>
             <TableHead>Stock</TableHead>
+            <TableHead>Expiration Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -99,6 +117,19 @@ export function ProductsList({ products: initialProducts, vendorId }: ProductsLi
                   )}
                   {stockQuantity === 0 && (
                     <span className="ml-1 text-xs text-red-500">(Out of stock)</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {product.expiration_date ? (
+                    <span className={
+                      isExpired(product.expiration_date)
+                        ? "text-red-500 font-medium"
+                        : "text-muted-foreground"
+                    }>
+                      {formatDate(product.expiration_date)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
                 <TableCell>

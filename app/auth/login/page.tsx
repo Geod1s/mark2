@@ -43,7 +43,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
-      <div className="p-6">
+      {/* <div className="p-6">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -51,7 +51,7 @@ export default function LoginPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Marketplace
         </Link>
-      </div>
+      </div> */}
 
       <div className="flex flex-1 items-center justify-center px-6 pb-12">
         <div className="w-full max-w-sm space-y-8">
