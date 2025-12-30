@@ -61,7 +61,7 @@ export function InventoryTrigger({
                 min="1"
                 max="50"
                 value={lowStockThreshold}
-                onChange={(e) => setLowStockThreshold(parseInt(e.target.value) || 5)}
+                onChange={(e) => setLowStockThreshold(parseInt(e.target.value) || 2)}
                 className="w-16 px-2 py-1 text-sm border rounded bg-background"
               />
               <span className="text-sm">units</span>

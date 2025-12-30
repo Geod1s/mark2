@@ -23,8 +23,8 @@ export default async function SettingsPage() {
     <DashboardLayout vendor={vendor}>
       <div className="max-w-2xl space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Store Settings</h2>
-          <p className="text-muted-foreground">Update your store information</p>
+          <h2 className="text-2xl font-semibold tracking-tight">POS Settings</h2>
+          <p className="text-muted-foreground">Update your POS information</p>
         </div>
 
         <StoreSettings vendor={vendor} />

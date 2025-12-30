@@ -24,17 +24,17 @@ export default async function BecomeVendorPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
+      {/* <Header /> */}
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2">
             {/* Left: Info */}
             <div>
               <h1 className="text-4xl font-semibold tracking-tight">Start selling on Marketplace</h1>
-              <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
+              {/* <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
                 Join thousands of independent sellers and reach customers worldwide. Set up your store in minutes and
                 start earning.
-              </p>
+              </p> */}
 
               <div className="mt-12 space-y-8">
                 <div className="flex gap-4">
@@ -42,9 +42,9 @@ export default async function BecomeVendorPage() {
                     <Store className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-medium">Create your store</h3>
+                    <h3 className="font-medium">Create your POS system</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Set up your storefront with a unique name and URL
+                      Set up your cloud POS with a unique name and URL
                     </p>
                   </div>
                 </div>
@@ -61,7 +61,7 @@ export default async function BecomeVendorPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                {/* <div className="flex gap-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
                     <CreditCard className="h-5 w-5" />
                   </div>
@@ -71,9 +71,9 @@ export default async function BecomeVendorPage() {
                       Connect with Stripe to receive payments directly
                     </p>
                   </div>
-                </div>
+                </div> */}
 
-                <div className="flex gap-4">
+                {/* <div className="flex gap-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
                     <CheckCircle className="h-5 w-5" />
                   </div>
@@ -83,7 +83,7 @@ export default async function BecomeVendorPage() {
                       Your products go live and customers can start buying
                     </p>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -98,7 +98,7 @@ export default async function BecomeVendorPage() {
           </div>
         </div>
       </main>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   )
 }

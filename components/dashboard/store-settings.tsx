@@ -55,36 +55,36 @@ export function StoreSettings({ vendor }: StoreSettingsProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="rounded-lg border border-border bg-card p-6 space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="storeName">Store Name</Label>
+          <Label htmlFor="storeName">POS Name</Label>
           <Input
             id="storeName"
             type="text"
             required
             value={storeName}
             onChange={(e) => setStoreName(e.target.value)}
-            className="bg-secondary border-0"
+            
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="slug">Store URL</Label>
+          <Label htmlFor="slug">POS URL</Label>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">marketplace.com/vendors/</span>
-            <Input id="slug" type="text" value={vendor.slug} disabled className="bg-muted border-0 flex-1" />
+            <span className="text-sm text-muted-foreground">marketjo.com/pos/</span>
+            <Input id="slug" type="text" value={vendor.slug} disabled />
           </div>
-          <p className="text-xs text-muted-foreground">Store URL cannot be changed</p>
+          <p className="text-xs text-muted-foreground">POS URL cannot be changed</p>
         </div>
 
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Tell customers about your store..."
-            className="min-h-[100px] bg-secondary border-0 resize-none"
+            className="min-h-[100px] resize-none"
           />
-        </div>
+        </div> */}
 
         <div className="space-y-2">
           <Label htmlFor="logoUrl">Logo URL</Label>
@@ -94,7 +94,7 @@ export function StoreSettings({ vendor }: StoreSettingsProps) {
             value={logoUrl}
             onChange={(e) => setLogoUrl(e.target.value)}
             placeholder="https://example.com/logo.jpg"
-            className="bg-secondary border-0"
+            
           />
         </div>
 

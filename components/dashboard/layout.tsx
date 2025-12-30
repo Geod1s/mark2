@@ -239,7 +239,7 @@ const navigation = [
     name: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
-    description: "Store configuration",
+    description: "POS configuration",
   },
 
   {
@@ -318,8 +318,8 @@ export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
       </div>
 
       {/* Desktop Sidebar */}
-    <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-  <div className="flex flex-col flex-1 border-r bg-card">
+      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
+   <div className="flex flex-col flex-1 border-r bg-card">
     <div className="flex h-16 items-center justify-between border-b px-6">
       <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
         <Avatar className="h-8 w-8">
@@ -330,7 +330,7 @@ export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
       </Link>
     </div>
 
-    <ScrollArea className="flex-1">
+    <ScrollArea className="flex-1 ">
       <div className="p-4">
         <nav className="space-y-1">
           {navigation.map((item) => {
@@ -340,16 +340,16 @@ export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
                 key={item.id}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-secondary",
+                  "flex items-center gap-3 px-3 py-2 text-sm transition-colors     ",
                   pathname === item.href
-                    ? "bg-secondary text-foreground font-medium"
+                  ? " bg-accent text-white rounded-lg ps "
                     : "text-muted-foreground"
                 )}
               >
                 <Icon className="h-4 w-4" />
                 <div className="flex-1 min-w-0">
                   <p className="truncate">{item.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                  <p className="text-xs truncate">{item.description}</p>
                 </div>
               </Link>
             );
@@ -374,28 +374,28 @@ export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
           </Button>
         </DropdownMenuTrigger>
 
-        {/* Updated Dropdown: Black background, all text and icons forced to white */}
+        {/* Dropdown styling to prevent color change on hover/focus */}
         <DropdownMenuContent align="end" className="w-56 bg-black text-white border-zinc-800">
-          <DropdownMenuLabel className="text-white">My Account</DropdownMenuLabel>
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-zinc-800" />
 
           <DropdownMenuItem
             asChild
-            className="focus:bg-transparent focus:text-white cursor-pointer text-white"
+            className="focus:bg-transparent focus:text-white cursor-pointer"
           >
             <Link href="/dashboard/settings" className="flex w-full items-center">
-              <Settings className="mr-2 h-4 w-4 text-white" />
-              <span>Settings</span>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
             </Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem
             asChild
-            className="focus:bg-transparent focus:text-white cursor-pointer text-white"
+            className="focus:bg-transparent focus:text-white cursor-pointer"
           >
             <Link href="/" className="flex w-full items-center">
-              <Home className="mr-2 h-4 w-4 text-white" />
-              <span>Storefront</span>
+              <Home className="mr-2 h-4 w-4" />
+              Storefront
             </Link>
           </DropdownMenuItem>
 
@@ -403,11 +403,11 @@ export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
 
           <DropdownMenuItem
             asChild
-            className="focus:bg-transparent focus:text-white cursor-pointer text-white"
+            className="focus:bg-transparent focus:text-white cursor-pointer"
           >
             <Link href="/dashboard/logout" className="flex w-full items-center">
-              <LogOut className="mr-2 h-4 w-4 text-white" />
-              <span>Log out</span>
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
             </Link>
           </DropdownMenuItem>
         </DropdownMenuContent>

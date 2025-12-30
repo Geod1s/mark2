@@ -26,12 +26,12 @@ export default function SignUpSuccessPage() {
             </Button>
           </Link>
 
-          <Link href="/">
+          {/* <Link href="/">
             <Button variant="ghost" className="w-full">
               <Store className="mr-2 h-4 w-4" />
               Back to Marketplace
             </Button>
-          </Link>
+          </Link> */}
         </div>
       </div>
     </div>

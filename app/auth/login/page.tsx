@@ -78,7 +78,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 bg-secondary border-0 placeholder:text-muted-foreground/50"
+                  
                 />
               </div>
               <div className="space-y-2">
@@ -94,7 +94,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 bg-secondary border-0"
+                  
                 />
               </div>
             </div>

@@ -155,8 +155,8 @@ export function DashboardOverview({ vendor, stats, recentOrders }: DashboardOver
 
   return (
     <div className="space-y-8">
-      {/* Stripe Alert - Only show if vendor hasn't setup Stripe AND has no cash orders yet */}
-      {needsStripeSetup && stats.totalOrders === 0 && (
+     
+      {/* {needsStripeSetup && stats.totalOrders === 0 && (
         <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-4">
           <AlertCircle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -169,7 +169,7 @@ export function DashboardOverview({ vendor, stats, recentOrders }: DashboardOver
             <Button size="sm">Setup Payments</Button>
           </Link>
         </div>
-      )}
+      )} */}
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -337,7 +337,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter product name"
-          className="bg-secondary border-0"
+          
         />
         {!product && (
           <p className="text-xs text-muted-foreground">
@@ -353,7 +353,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe your product"
-          className="min-h-[120px] bg-secondary border-0 resize-none"
+          className="min-h-[120px]  resize-none"
         />
       </div>
 
@@ -371,12 +371,12 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
-              className="pl-7 bg-secondary border-0"
+             
             />
           </div>
         </div>
 
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label htmlFor="compareAtPrice">Compare at Price (Optional)</Label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
@@ -388,10 +388,10 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
               value={compareAtPrice}
               onChange={(e) => setCompareAtPrice(e.target.value)}
               placeholder="0.00"
-              className="pl-7 bg-secondary border-0"
+             
             />
           </div>
-        </div>
+        </div> */}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -404,7 +404,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
             required
             value={stockQuantity}
             onChange={(e) => setStockQuantity(e.target.value)}
-            className="bg-secondary border-0"
+           
           />
           {product && (
             <p className="text-xs text-muted-foreground">
@@ -413,13 +413,13 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 ">
           <Label htmlFor="category">Category</Label>
           <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger className="bg-secondary border-0">
+            <SelectTrigger className="">
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="w-56 bg-black text-white border-zinc-800 ">
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -453,7 +453,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
                 }
               }
             }}
-            className="bg-secondary border-0"
+            
           />
           <p className="text-xs text-muted-foreground">
             Date when the product was manufactured/produced
@@ -485,7 +485,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
               setExpirationDate(newExpirationDate);
             }}
             min={productionDate} // Set minimum date to production date
-            className="bg-secondary border-0"
+          
           />
           <p className="text-xs text-muted-foreground">
             Date when the product expires/should not be used after
@@ -501,7 +501,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
           placeholder="https://example.com/image.jpg"
-          className="bg-secondary border-0"
+         
         />
         <p className="text-xs text-muted-foreground">
           Enter an image URL. For production, integrate with Vercel Blob or similar.

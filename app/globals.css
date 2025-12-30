@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+
 @custom-variant dark (&:is(.dark *));
 
 /* <CHANGE> Updated theme to dark marketplace design - black/white with subtle accents */
@@ -128,3 +129,5 @@
     @apply bg-background text-foreground;
   }
 }
+
+

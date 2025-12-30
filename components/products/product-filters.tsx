@@ -66,7 +66,7 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
           placeholder="Search products..."
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
-          className="pl-9 bg-secondary border-0"
+         
         />
       </form>
 

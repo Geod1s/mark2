@@ -726,22 +726,22 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
             <div className="mt-4 space-y-2">
               <h4 className="font-medium">Payment Method</h4>
               <div className="grid grid-cols-2 gap-2">
-                <Button
+                {/* <Button
                   variant={paymentMethod === 'cash' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('cash')}
                   className="flex items-center gap-2"
                 >
                   <DollarSign className="h-4 w-4" />
                   Cash
-                </Button>
-                <Button
+                </Button> */}
+                {/* <Button
                   variant={paymentMethod === 'card' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('card')}
                   className="flex items-center gap-2"
                 >
                   <CreditCard className="h-4 w-4" />
                   Card
-                </Button>
+                </Button> */}
               </div>
             </div>
 

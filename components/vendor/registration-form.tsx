@@ -70,7 +70,7 @@ export function VendorRegistrationForm() {
     const { data: existingVendor } = await supabase.from("vendors").select("id").eq("slug", slug).maybeSingle()
 
     if (existingVendor) {
-      setError("This store URL is already taken. Please choose another.")
+      setError("This pos URL is already taken. Please choose another.")
       setIsLoading(false)
       return
     }
@@ -106,38 +106,39 @@ export function VendorRegistrationForm() {
     <form onSubmit={handleSubmit} className="mt-6 space-y-6">
       <div className="space-y-2">
         <Label htmlFor="storeName" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Store Name
+          POS Name
         </Label>
         <Input
           id="storeName"
           type="text"
-          placeholder="My Awesome Store"
+          placeholder="Your POS Name"
           required
           value={storeName}
           onChange={(e) => handleStoreNameChange(e.target.value)}
-          className="h-12 bg-secondary border-0"
+         
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="slug" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Store URL
+          POS URL
         </Label>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">marketplace.com/vendors/</span>
+          <span className="text-sm text-muted-foreground">marketjo.com/pos/</span>
           <Input
             id="slug"
             type="text"
-            placeholder="my-store"
+            placeholder="your-pos-url"
             required
             value={slug}
             onChange={(e) => setSlug(generateSlug(e.target.value))}
-            className="h-12 bg-secondary border-0 flex-1"
+           
           />
+          <p className="text-xs text-muted-foreground">POS URL cannot be changed</p>
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="description" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Store Description (Optional)
         </Label>
@@ -146,14 +147,14 @@ export function VendorRegistrationForm() {
           placeholder="Tell customers about your store..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="min-h-[100px] bg-secondary border-0 resize-none"
+          className="min-h-[100px]  resize-none"
         />
-      </div>
+      </div> */}
 
       {error && <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
 
       <Button type="submit" className="w-full h-12 font-medium" disabled={isLoading}>
-        {isLoading ? "Creating store..." : "Create Store"}
+        {isLoading ? "Creating POS..." : "Create POS"}
       </Button>
     </form>
   )
