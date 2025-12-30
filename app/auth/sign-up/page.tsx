@@ -95,7 +95,7 @@ export default function SignUpPage() {
             </Link>
             <div className="space-y-2">
               <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
-              <p className="text-sm text-muted-foreground">Join the marketplace and start shopping</p>
+              {/* <p className="text-sm text-muted-foreground">Join the marketplace and start shopping</p> */}
             </div>
           </div>
 

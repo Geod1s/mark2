@@ -369,7 +369,7 @@ export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
             </Avatar>
             <div className="flex-1 text-left overflow-hidden">
               <p className="text-sm font-medium text-muted-foreground truncate">{vendor.store_name}</p>
-              <p className="text-xs text-muted-foreground truncate">Vendor Account</p>
+              <p className="text-xs text-muted-foreground truncate">POS Account</p>
             </div>
           </Button>
         </DropdownMenuTrigger>
