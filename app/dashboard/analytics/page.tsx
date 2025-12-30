@@ -16,7 +16,7 @@ import {
 import AnalyticsCharts from "@/components/analytics/analytics-charts"
 
 type TopProduct = { id: string; name: string; sold: number }
-type Product = { id: string; name: string; cost_price: number; selling_price: number; stock_quantity: number; is_active: boolean }
+type Product = { id: string; name: string; price: number; selling_price: number; stock_quantity: number; is_active: boolean }
 type Order = { id: string; total_amount: number; created_at: string; user_id?: string }
 type CashOrder = { id: string; total_amount: number; items: any[]; created_at: string; user_id?: string }
 type OrderItem = { id: string; product_id: string; quantity: number; price: number }
@@ -250,6 +250,30 @@ export default async function AnalyticsPage() {
   const salesByAssociateArray = Array.from(salesByAssociate.entries())
     .map(([id, data]) => ({ id, ...data }))
     .sort((a, b) => b.revenue - a.revenue)
+
+  // Employee pay rate information - in a real implementation, this would come from an employee table
+  // For now, we'll create mock data based on the users who have sales
+  const employeePayRates = salesByAssociateArray.map(associate => {
+    // In a real implementation, this would fetch from an employees table
+    // For demo purposes, we'll assign mock values
+    const mockPayRates = {
+      'John Doe': { dailyRate: 150.00, hoursWorked: 8 },
+      'Jane Smith': { dailyRate: 120.00, hoursWorked: 8 },
+      'Bob Johnson': { dailyRate: 100.00, hoursWorked: 8 },
+      'Alice Williams': { dailyRate: 130.00, hoursWorked: 8 },
+    };
+
+    const name = associate.name;
+    const payInfo = mockPayRates[name as keyof typeof mockPayRates] || { dailyRate: 120.00, hoursWorked: 8 };
+
+    return {
+      id: associate.id,
+      name: associate.name,
+      dailyRate: payInfo.dailyRate,
+      hoursWorked: payInfo.hoursWorked,
+      dailyPay: payInfo.dailyRate * payInfo.hoursWorked
+    };
+  })
 
   // Customer reports
   const customerPurchaseHistory = new Map<string, { name: string, orders: number, totalSpent: number }>()
@@ -506,7 +530,7 @@ export default async function AnalyticsPage() {
                   <TableRow>
                     <TableHead>Product</TableHead>
                     <TableHead>Current Stock</TableHead>
-                    <TableHead>Cost Price</TableHead>
+                    <TableHead>Price</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -516,7 +540,7 @@ export default async function AnalyticsPage() {
                       <TableRow key={index}>
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>{product.stock_quantity}</TableCell>
-                        <TableCell>${Number(product.cost_price).toFixed(2)}</TableCell>
+                        <TableCell>${Number(product.price).toFixed(2)}</TableCell>
                         <TableCell>
                           <Badge variant="destructive">Low Stock</Badge>
                         </TableCell>
@@ -536,54 +560,94 @@ export default async function AnalyticsPage() {
         </div>
 
         {/* Employee Reports Section */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Employee Reports</h2>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Sales by Associate</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Associate</TableHead>
-                    <TableHead className="text-right">Orders</TableHead>
-                    <TableHead className="text-right">Revenue</TableHead>
-                    <TableHead className="text-right">Avg Order Value</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {salesByAssociateArray.length > 0 ? (
-                    salesByAssociateArray.map((associate, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{associate.name}</TableCell>
-                        <TableCell className="text-right">{associate.orders}</TableCell>
-                        <TableCell className="text-right">${associate.revenue.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                          ${(associate.orders > 0 ? associate.revenue / associate.orders : 0).toFixed(2)}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+  
+            <Card>
+              <CardHeader>
+                <CardTitle>Sales by Associate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Associate</TableHead>
+                      <TableHead className="text-right">Orders</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
+                      <TableHead className="text-right">Avg Order Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {salesByAssociateArray.length > 0 ? (
+                      salesByAssociateArray.map((associate, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{associate.name}</TableCell>
+                          <TableCell className="text-right">{associate.orders}</TableCell>
+                          <TableCell className="text-right">${associate.revenue.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">
+                            ${(associate.orders > 0 ? associate.revenue / associate.orders : 0).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          No sales data available
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+           
+            <Card>
+              <CardHeader>
+                <CardTitle>Daily Pay Rate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        No sales data available
-                      </TableCell>
+                      <TableHead>Employee</TableHead>
+                      <TableHead className="text-right">Daily Rate</TableHead>
+                      <TableHead className="text-right">Hours Worked</TableHead>
+                      <TableHead className="text-right">Daily Pay</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
+                  </TableHeader>
+                  <TableBody>
+                    {employeePayRates.length > 0 ? (
+                      employeePayRates.map((employee, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{employee.name}</TableCell>
+                          <TableCell className="text-right">${employee.dailyRate.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">{employee.hoursWorked}h</TableCell>
+                          <TableCell className="text-right">${employee.dailyPay.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          No employee data available
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </div> */}
 
         {/* Customer Reports Section */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Customer Reports</h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Customer Loyalty */}
+            
             <Card>
               <CardHeader>
                 <CardTitle>Top Customers (VIPs)</CardTitle>
@@ -618,7 +682,7 @@ export default async function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            {/* Purchase History */}
+            
             <Card>
               <CardHeader>
                 <CardTitle>Customer Purchase History</CardTitle>
@@ -640,7 +704,7 @@ export default async function AnalyticsPage() {
               </CardContent>
             </Card>
           </div>
-        </div>
+        </div> */}
       </div>
     </DashboardLayout>
   )

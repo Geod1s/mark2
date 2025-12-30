@@ -299,7 +299,7 @@ export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
                         href={item.href}
                         onClick={() => setIsOpen(false)}
                         className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-secondary",
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-secondary",
                           pathname === item.href
                             ? "bg-secondary text-foreground font-medium"
                             : "text-muted-foreground"
@@ -318,86 +318,103 @@ export function DashboardLayout({ children, vendor }: DashboardLayoutProps) {
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex flex-col flex-1 border-r bg-card">
-          <div className="flex h-16 items-center justify-between border-b px-6">
-            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={vendor.logo_url || undefined} alt={vendor.store_name} />
-                <AvatarFallback>{vendor.store_name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <span className="truncate">{vendor.store_name}</span>
-            </Link>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-4">
-              <nav className="space-y-1">
-                {navigation.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.id} // Use unique ID as key
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-secondary",
-                        pathname === item.href
-                          ? "bg-secondary text-foreground font-medium"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <div className="flex-1 min-w-0">
-                        <p className="truncate">{item.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
-          </ScrollArea>
-          <div className="border-t p-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start">
-                  <Avatar className="h-8 w-8 mr-2">
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 text-left overflow-hidden">
-                    <p className="text-sm font-medium truncate">{vendor.store_name}</p>
-                    <p className="text-xs text-muted-foreground truncate">Vendor Account</p>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/">
-                    <Home className="mr-2 h-4 w-4" />
-                    Storefront
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/logout">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+    <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
+  <div className="flex flex-col flex-1 border-r bg-card">
+    <div className="flex h-16 items-center justify-between border-b px-6">
+      <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={vendor.logo_url || undefined} alt={vendor.store_name} />
+          <AvatarFallback>{vendor.store_name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <span className="truncate">{vendor.store_name}</span>
+      </Link>
+    </div>
+
+    <ScrollArea className="flex-1">
+      <div className="p-4">
+        <nav className="space-y-1">
+          {navigation.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-secondary",
+                  pathname === item.href
+                    ? "bg-secondary text-foreground font-medium"
+                    : "text-muted-foreground"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <div className="flex-1 min-w-0">
+                  <p className="truncate">{item.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
+    </ScrollArea>
+
+    <div className="border-t p-4">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="w-full justify-start hover:bg-secondary">
+            <Avatar className="h-8 w-8 text-muted-foreground mr-2">
+              <AvatarFallback>
+                <User className="h-4 w-4" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 text-left overflow-hidden">
+              <p className="text-sm font-medium text-muted-foreground truncate">{vendor.store_name}</p>
+              <p className="text-xs text-muted-foreground truncate">Vendor Account</p>
+            </div>
+          </Button>
+        </DropdownMenuTrigger>
+
+        {/* Updated Dropdown: Black background, all text and icons forced to white */}
+        <DropdownMenuContent align="end" className="w-56 bg-black text-white border-zinc-800">
+          <DropdownMenuLabel className="text-white">My Account</DropdownMenuLabel>
+          <DropdownMenuSeparator className="bg-zinc-800" />
+
+          <DropdownMenuItem
+            asChild
+            className="focus:bg-transparent focus:text-white cursor-pointer text-white"
+          >
+            <Link href="/dashboard/settings" className="flex w-full items-center">
+              <Settings className="mr-2 h-4 w-4 text-white" />
+              <span>Settings</span>
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            asChild
+            className="focus:bg-transparent focus:text-white cursor-pointer text-white"
+          >
+            <Link href="/" className="flex w-full items-center">
+              <Home className="mr-2 h-4 w-4 text-white" />
+              <span>Storefront</span>
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="bg-zinc-800" />
+
+          <DropdownMenuItem
+            asChild
+            className="focus:bg-transparent focus:text-white cursor-pointer text-white"
+          >
+            <Link href="/dashboard/logout" className="flex w-full items-center">
+              <LogOut className="mr-2 h-4 w-4 text-white" />
+              <span>Log out</span>
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  </div>
+</div>
 
       {/* Main Content */}
       <div className="flex-1 lg:pl-64">

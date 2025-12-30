@@ -784,45 +784,56 @@ export function OrdersList({ orders: initialOrders }: OrdersListProps) {
                     {formatDate(order.created_at)}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setSelectedOrder(order)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
-                          <DialogHeader>
-                            <DialogTitle>
-                              Order Details #{order.id.slice(0, 8)}
-                            </DialogTitle>
-                          </DialogHeader>
-                          <OrderDetailsDialog order={order} />
-                        </DialogContent>
-                      </Dialog>
+                <div className="flex items-center gap-2">
+  <Dialog>
+    <DialogTrigger asChild>
+      <Button 
+        variant="ghost" 
+        size="sm"
+        onClick={(e) => {
+          e.preventDefault(); // Add this line
+          e.stopPropagation(); // Prevents the event from bubbling up
+          setSelectedOrder(order);
+        }}
+        className=" hover:bg-transparent hover:text-black cursor-pointer"
+      >
+        <Eye className="h-4 w-4 " />
+      </Button>
+    </DialogTrigger>
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>
+          Order Details #{order.id.slice(0, 8)}
+        </DialogTitle>
+      </DialogHeader>
+      <OrderDetailsDialog order={order} />
+    </DialogContent>
+  </Dialog>
 
-                      <Select
-                        value={order.status}
-                        onValueChange={(value) => updateOrderStatus(order.id, value)}
-                        disabled={updating === order.id}
-                      >
-                        <SelectTrigger className="w-[130px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getStatusOptions(order.order_type).map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {updating === order.id ? "Updating..." : option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </TableCell>
+  <Select
+    value={order.status}
+    onValueChange={(value) => updateOrderStatus(order.id, value)}
+    disabled={updating === order.id}
+  >
+    <SelectTrigger className="w-[130px] h-8 text-xs cursor-pointer">
+      <SelectValue />
+    </SelectTrigger>
+    <SelectContent className=" bg-black text-white">
+      {getStatusOptions(order.order_type).map((option) => (
+        <SelectItem 
+          key={option.value} 
+          value={option.value}
+          // focus: targets keyboard navigation
+          // data-[highlighted]: targets mouse hover and active state
+          className="focus:bg-transparent focus:text-white cursor-pointer text-white transition-colors cursor-pointer"
+        >
+          {updating === order.id ? "Updating..." : option.label}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
+              </TableCell>
                 </TableRow>
               )
             })}
@@ -962,7 +973,7 @@ function OrderDetailsDialog({ order }: { order: OrderWithItems }) {
           </div>
           
           {/* Quick Actions */}
-          <div className="flex gap-2 mt-4">
+          {/* <div className="flex gap-2 mt-4">
             {order.customer_email && (
               <Button 
                 size="sm" 
@@ -983,7 +994,7 @@ function OrderDetailsDialog({ order }: { order: OrderWithItems }) {
                 Call Customer
               </Button>
             )}
-          </div>
+          </div> */}
         </div>
       )}
 

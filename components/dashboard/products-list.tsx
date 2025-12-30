@@ -148,34 +148,53 @@ export function ProductsList({ products: initialProducts, vendorId }: ProductsLi
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/dashboard/products/${product.id}`} className="flex items-center">
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toggleActive(product.id, product.is_active)}>
-                        {product.is_active ? (
-                          <>
-                            <EyeOff className="mr-2 h-4 w-4" />
-                            Deactivate
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Activate
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => deleteProduct(product.id)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
+                    
+                      <DropdownMenuContent
+      align="end"
+      className="bg-black text-white border-zinc-800"
+    >
+      {/* Edit */}
+      <DropdownMenuItem
+        asChild
+        className="flex items-center justify-center gap-2 focus:bg-transparent focus:text-white cursor-pointer"
+      >
+        <Link
+          href={`/dashboard/products/${product.id}`}
+          className="flex items-center justify-center gap-2 w-full"
+        >
+          <Pencil className="h-4 w-4" />
+          Edit
+        </Link>
+      </DropdownMenuItem>
+
+      {/* Toggle Active */}
+      <DropdownMenuItem
+        onClick={() => toggleActive(product.id, product.is_active)}
+        className="flex items-center justify-center gap-2 focus:bg-transparent focus:text-white cursor-pointer"
+      >
+        {product.is_active ? (
+          <>
+            <EyeOff className="h-4 w-4" />
+            Deactivate
+          </>
+        ) : (
+          <>
+            <Eye className="h-4 w-4" />
+            Activate
+          </>
+        )}
+      </DropdownMenuItem>
+
+      {/* Delete */}
+      <DropdownMenuItem
+        onClick={() => deleteProduct(product.id)}
+        className="flex items-center justify-center gap-2 text-red-500 focus:bg-transparent focus:text-red-500 cursor-pointer"
+      >
+        <Trash2 className="h-4 w-4" />
+        Delete
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+
                   </DropdownMenu>
                 </TableCell>
               </TableRow>

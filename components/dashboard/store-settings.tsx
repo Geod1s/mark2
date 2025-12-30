@@ -98,7 +98,7 @@ export function StoreSettings({ vendor }: StoreSettingsProps) {
           />
         </div>
 
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label htmlFor="bannerUrl">Banner URL</Label>
           <Input
             id="bannerUrl"
@@ -108,7 +108,7 @@ export function StoreSettings({ vendor }: StoreSettingsProps) {
             placeholder="https://example.com/banner.jpg"
             className="bg-secondary border-0"
           />
-        </div>
+        </div> */}
       </div>
 
       {message && (

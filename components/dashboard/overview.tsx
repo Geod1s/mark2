@@ -264,14 +264,14 @@ export function DashboardOverview({ vendor, stats, recentOrders }: DashboardOver
         <Link href="/dashboard/orders">
           <Button variant="outline">View All Orders</Button>
         </Link>
-        {needsStripeSetup && (
+        {/* {needsStripeSetup && (
           <Link href="/dashboard/payments">
             <Button variant="outline">
               <CreditCard className="mr-2 h-4 w-4" />
               Setup Card Payments
             </Button>
           </Link>
-        )}
+        )} */}
       </div>
 
       {/* Recent Orders */}
@@ -340,7 +340,7 @@ export function DashboardOverview({ vendor, stats, recentOrders }: DashboardOver
       </div>
 
       {/* Cash Orders Notice */}
-      {cashOrdersCount > 0 && (
+      {/* {cashOrdersCount > 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950 p-4">
           <div className="flex items-start gap-3">
             <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
@@ -359,7 +359,7 @@ export function DashboardOverview({ vendor, stats, recentOrders }: DashboardOver
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   )
 }
