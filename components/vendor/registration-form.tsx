@@ -119,7 +119,7 @@ export function VendorRegistrationForm() {
         />
       </div>
 
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="slug" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           POS URL
         </Label>
@@ -136,7 +136,7 @@ export function VendorRegistrationForm() {
           />
           <p className="text-xs text-muted-foreground">POS URL cannot be changed</p>
         </div>
-      </div>
+      </div> */}
 
       {/* <div className="space-y-2">
         <Label htmlFor="description" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

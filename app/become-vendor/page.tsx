@@ -90,7 +90,7 @@ export default async function BecomeVendorPage() {
             {/* Right: Form */}
             <div className="lg:pl-8">
               <div className="rounded-lg border border-border bg-card p-6 sm:p-8">
-                <h2 className="text-xl font-semibold">Create your store</h2>
+                <h2 className="text-xl font-semibold">Create your POS</h2>
                 <p className="mt-2 text-sm text-muted-foreground">Fill in the details below to get started</p>
                 <VendorRegistrationForm />
               </div>
