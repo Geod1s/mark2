@@ -66,14 +66,14 @@ export function StoreSettings({ vendor }: StoreSettingsProps) {
           />
         </div>
 
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label htmlFor="slug">POS URL</Label>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">marketjo.com/pos/</span>
             <Input id="slug" type="text" value={vendor.slug} disabled />
           </div>
           <p className="text-xs text-muted-foreground">POS URL cannot be changed</p>
-        </div>
+        </div> */}
 
         {/* <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
