@@ -376,22 +376,20 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
           </div>
         </div>
 
-        {/* <div className="space-y-2">
-          <Label htmlFor="compareAtPrice">Compare at Price (Optional)</Label>
+        <div className="space-y-2">
+          <Label htmlFor="compareAtPrice">SKU</Label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></span>
             <Input
-              id="compareAtPrice"
-              type="number"
-              step="0.01"
-              min="0"
+              id="SKU"
+              type="text"
               value={compareAtPrice}
               onChange={(e) => setCompareAtPrice(e.target.value)}
-              placeholder="0.00"
+              placeholder="Enter SKU"
              
             />
           </div>
-        </div> */}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

@@ -83,6 +83,7 @@ export function ProductsList({ products: initialProducts, vendorId }: ProductsLi
             <TableHead>Stock</TableHead>
             <TableHead>Expiration Date</TableHead>
             <TableHead>Status</TableHead>
+            {/* <TableHead>SL</TableHead> */}
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
