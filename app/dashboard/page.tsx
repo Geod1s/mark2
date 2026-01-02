@@ -131,6 +131,8 @@ export default async function DashboardPage() {
     // Add additional stats as optional properties
     stripeOrdersCount: stripeOrders.length,
     cashOrdersCount: cashOrders.length,
+    stripeRevenue,
+    cashRevenue,
   }
 
   return (
