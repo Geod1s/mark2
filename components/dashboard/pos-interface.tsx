@@ -882,7 +882,7 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
             </div>
 
             {/* Payment Method */}
-            <div className="mt-4 space-y-2">
+            {/* <div className="mt-4 space-y-2">
               <h4 className="font-medium">Payment Method</h4>
               <div className="grid grid-cols-2 gap-2">
                 <Button
@@ -902,7 +902,7 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
                   Card
                 </Button>
               </div>
-            </div>
+            </div> */}
 
             {/* Complete Sale Button */}
             <Button
