@@ -8,7 +8,7 @@ export async function PUT(
 ) {
   try {
     // Use 'await' since createClient returns a Promise
-    const supabase = createClient()
+    const supabase = await createClient()
     const productId = params.productId
     const { quantity } = await request.json()
 

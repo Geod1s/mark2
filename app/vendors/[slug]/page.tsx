@@ -12,7 +12,7 @@ interface VendorPageProps {
 
 export default async function VendorPage({ params }: VendorPageProps) {
   const { slug } = await params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: vendor } = await supabase.from("vendors").select("*").eq("slug", slug).eq("is_active", true).single()
 

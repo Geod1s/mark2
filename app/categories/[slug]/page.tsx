@@ -12,7 +12,7 @@ interface CategoryPageProps {
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = await params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: category } = await supabase.from("categories").select("*").eq("slug", slug).single()
 

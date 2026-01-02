@@ -10,7 +10,7 @@ interface ProductPageProps {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { id } = await params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: product } = await supabase
     .from("products")

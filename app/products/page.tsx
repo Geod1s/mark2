@@ -13,7 +13,7 @@ interface ProductsPageProps {
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const params = await searchParams
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Get all products for inventory dashboard
   const { data: allProducts } = await supabase

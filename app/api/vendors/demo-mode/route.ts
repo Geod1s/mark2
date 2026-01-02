@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { vendorId } = await request.json()
 
     // In a real implementation, you might set a demo flag for the vendor
