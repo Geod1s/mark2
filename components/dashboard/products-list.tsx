@@ -16,6 +16,12 @@ interface ProductsListProps {
   vendorId: string
 }
 
+// Accept vendor thresholds so the list highlights low/overstock according to vendor settings
+interface ProductsListPropsWithThresholds extends ProductsListProps {
+  lowStockThreshold?: number
+  overstockThreshold?: number
+}
+
 // Helper function to check if expiration date has passed
 const isExpired = (expirationDate: string): boolean => {
   const today = new Date()
@@ -33,7 +39,7 @@ const formatDate = (dateString: string) => {
   })
 }
 
-export function ProductsList({ products: initialProducts, vendorId }: ProductsListProps) {
+export function ProductsList({ products: initialProducts, vendorId, lowStockThreshold = 10, overstockThreshold = 100 }: ProductsListPropsWithThresholds) {
   const [products, setProducts] = useState(initialProducts)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -113,8 +119,11 @@ export function ProductsList({ products: initialProducts, vendorId }: ProductsLi
                   <span className={stockQuantity > 0 ? "font-medium" : "text-red-500 font-medium"}>
                     {stockQuantity}
                   </span>
-                  {stockQuantity < 10 && stockQuantity > 0 && (
+                  {stockQuantity < lowStockThreshold && stockQuantity > 0 && (
                     <span className="ml-1 text-xs text-amber-500">(Low stock)</span>
+                  )}
+                  {stockQuantity >= overstockThreshold && (
+                    <span className="ml-1 text-xs text-sky-600">(Overstock)</span>
                   )}
                   {stockQuantity === 0 && (
                     <span className="ml-1 text-xs text-red-500">(Out of stock)</span>
@@ -149,53 +158,51 @@ export function ProductsList({ products: initialProducts, vendorId }: ProductsLi
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    
-                      <DropdownMenuContent
-      align="end"
-      className="bg-black text-white border-zinc-800"
-    >
-      {/* Edit */}
-      <DropdownMenuItem
-        asChild
-        className="flex items-center justify-center gap-2 focus:bg-transparent focus:text-white cursor-pointer"
-      >
-        <Link
-          href={`/dashboard/products/${product.id}`}
-          className="flex items-center justify-center gap-2 w-full"
-        >
-          <Pencil className="h-4 w-4" />
-          Edit
-        </Link>
-      </DropdownMenuItem>
+                    <DropdownMenuContent
+                      align="end"
+                      className="bg-black text-white border-zinc-800"
+                    >
+                      {/* Edit */}
+                      <DropdownMenuItem
+                        asChild
+                        className="flex items-center justify-center gap-2 focus:bg-transparent focus:text-white cursor-pointer"
+                      >
+                        <Link
+                          href={`/dashboard/products/${product.id}`}
+                          className="flex items-center justify-center gap-2 w-full"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </Link>
+                      </DropdownMenuItem>
 
-      {/* Toggle Active */}
-      <DropdownMenuItem
-        onClick={() => toggleActive(product.id, product.is_active)}
-        className="flex items-center justify-center gap-2 focus:bg-transparent focus:text-white cursor-pointer"
-      >
-        {product.is_active ? (
-          <>
-            <EyeOff className="h-4 w-4" />
-            Deactivate
-          </>
-        ) : (
-          <>
-            <Eye className="h-4 w-4" />
-            Activate
-          </>
-        )}
-      </DropdownMenuItem>
+                      {/* Toggle Active */}
+                      <DropdownMenuItem
+                        onClick={() => toggleActive(product.id, product.is_active)}
+                        className="flex items-center justify-center gap-2 focus:bg-transparent focus:text-white cursor-pointer"
+                      >
+                        {product.is_active ? (
+                          <>
+                            <EyeOff className="h-4 w-4" />
+                            Deactivate
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="h-4 w-4" />
+                            Activate
+                          </>
+                        )}
+                      </DropdownMenuItem>
 
-      {/* Delete */}
-      <DropdownMenuItem
-        onClick={() => deleteProduct(product.id)}
-        className="flex items-center justify-center gap-2 text-red-500 focus:bg-transparent focus:text-red-500 cursor-pointer"
-      >
-        <Trash2 className="h-4 w-4" />
-        Delete
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-
+                      {/* Delete */}
+                      <DropdownMenuItem
+                        onClick={() => deleteProduct(product.id)}
+                        className="flex items-center justify-center gap-2 text-red-500 focus:bg-transparent focus:text-red-500 cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
               </TableRow>

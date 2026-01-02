@@ -2,10 +2,11 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
+import { BarcodeScanner } from "@/components/barcode-scanner"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -24,37 +25,59 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
   // Initialize with product data if available, otherwise empty defaults
   const [name, setName] = useState(product?.name || "")
   const [description, setDescription] = useState(product?.description || "")
-  const [price, setPrice] = useState(product?.price?.toString() || "")
-  const [compareAtPrice, setCompareAtPrice] = useState(product?.compare_at_price?.toString() || "")
+  const [price, setPrice] = useState<string>(product?.price?.toString() || "")
+  const [compareAtPrice, setCompareAtPrice] = useState<string>(product?.compare_at_price !== null && product?.compare_at_price !== undefined ? product.compare_at_price.toString() : "")
+  const [sku, setSku] = useState(product?.sku || "")
+  const [barcode, setBarcode] = useState(product?.barcode || "")
   // Changed from inventory_count to stock_quantity
-  const [stockQuantity, setStockQuantity] = useState(
+  const [stockQuantity, setStockQuantity] = useState<string>(
     product?.stock_quantity !== undefined ? product.stock_quantity.toString() : "0"
   )
-  const [categoryId, setCategoryId] = useState(product?.category_id || "")
-  const [imageUrl, setImageUrl] = useState(product?.images?.[0] || "")
-  const [productionDate, setProductionDate] = useState(product?.production_date || "")
-  const [expirationDate, setExpirationDate] = useState(product?.expiration_date || "")
-  const [isLoading, setIsLoading] = useState(false)
+  const [categoryId, setCategoryId] = useState<string>(product?.category_id || "")
+  const [imageUrl, setImageUrl] = useState<string>(product?.images?.[0] || "")
+  const [productionDate, setProductionDate] = useState<string>(product?.production_date || "")
+  const [expirationDate, setExpirationDate] = useState<string>(product?.expiration_date || "")
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [scannerOpen, setScannerOpen] = useState<boolean>(false)
+
+  // Refs for barcode scanning UX: the scanner sends the barcode then usually an Enter.
+  // We catch Enter on the barcode input and then move focus to the next field.
+  const barcodeRef = useRef<HTMLInputElement | null>(null)
+  const stockRef = useRef<HTMLInputElement | null>(null)
 
   // Effect to ensure expiration date is not before production date
   useEffect(() => {
     if (productionDate && expirationDate) {
-      const prodDate = new Date(productionDate);
-      const expDate = new Date(expirationDate);
+      try {
+        const prodDate = new Date(productionDate);
+        const expDate = new Date(expirationDate);
 
-      if (expDate < prodDate) {
-        // Set expiration date to production date if it's earlier
-        setExpirationDate(productionDate);
-        setError("Expiration date was adjusted to not be before production date.");
-      } else {
-        // Clear error if dates are valid (but only if it's related to date validation)
-        if (error && error.includes("cannot be before")) {
-          setError(null);
+        if (isNaN(prodDate.getTime()) || isNaN(expDate.getTime())) {
+          setError("Invalid date format provided.");
+          return;
         }
+
+        if (expDate < prodDate) {
+          // Set expiration date to production date if it's earlier
+          setExpirationDate(productionDate);
+          setError("Expiration date was adjusted to not be before production date.");
+        } else {
+          // Clear error if dates are valid (but only if it's related to date validation)
+          if (error && error.includes("cannot be before")) {
+            setError(null);
+          }
+        }
+      } catch (dateError) {
+        console.error("Date validation error:", {
+          message: dateError instanceof Error ? dateError.message : 'Unknown date error',
+          productionDate,
+          expirationDate
+        });
+        setError("Invalid date format provided.");
       }
     }
-  }, [productionDate, error]);
+  }, [productionDate, expirationDate, error]);
 
   // Enhanced slug generation function
   const generateSlug = (name: string) => {
@@ -64,71 +87,163 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
       .replace(/(^-|-$)/g, "")
   }
 
+  // Handle Enter pressed while barcode input is focused (scanner emulates keyboard)
+  const handleBarcodeInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      const code = (e.currentTarget.value || "").trim()
+      if (code) {
+        setBarcode(code)
+        // Slight delay to ensure any native input update finishes, then move focus
+        setTimeout(() => {
+          stockRef.current?.focus()
+        }, 50)
+      }
+    }
+  }
+
+  const handleScannedBarcode = (code: string) => {
+    const trimmed = (code || "").trim()
+    if (!trimmed) return
+    setBarcode(trimmed)
+    // Move focus to stock quantity after scanning
+    setTimeout(() => stockRef.current?.focus(), 50)
+    setScannerOpen(false)
+  }
+
+  // Auto-focus barcode field when creating a new product (helpful for scanning)
+  useEffect(() => {
+    if (!product) {
+      // Give the page a moment to render, then focus and select the barcode input
+      const t = setTimeout(() => {
+        try {
+          barcodeRef.current?.focus()
+          // Select text if supported
+          // @ts-ignore
+          barcodeRef.current?.select?.()
+        } catch (err) {
+          // ignore focus errors
+        }
+      }, 120)
+
+      return () => clearTimeout(t)
+    }
+  }, [product])
+
   // Function to generate a unique slug
   const generateUniqueSlug = async (baseName: string): Promise<string> => {
-    const supabase = createClient()
-    let baseSlug = generateSlug(baseName)
-    let finalSlug = baseSlug
-    let counter = 1
-    
-    // If editing existing product, keep its slug
-    if (product?.slug) {
-      return product.slug
-    }
+    try {
+      const supabase = createClient()
+      let baseSlug = generateSlug(baseName)
+      let finalSlug = baseSlug
+      let counter = 1
 
-    // Check if slug exists globally
-    const { data: existing } = await supabase
-      .from("products")
-      .select("id")
-      .eq("slug", finalSlug)
-      .maybeSingle()
+      // If editing existing product, keep its slug
+      if (product?.slug) {
+        return product.slug
+      }
 
-    // If slug doesn't exist, use it
-    if (!existing) {
-      return finalSlug
-    }
-
-    // Try with vendor-specific prefix
-    const { data: vendor } = await supabase
-      .from("vendors")
-      .select("business_name, store_name")
-      .eq("id", vendorId)
-      .maybeSingle()
-
-    if (vendor?.business_name || vendor?.store_name) {
-      const vendorName = vendor.business_name || vendor.store_name
-      const vendorSlug = generateSlug(vendorName)
-      finalSlug = `${vendorSlug}-${baseSlug}`
-      
-      const { data: checkVendorSlug } = await supabase
+      // Check if slug exists globally
+      const { data: existing, error: existingError } = await supabase
         .from("products")
         .select("id")
         .eq("slug", finalSlug)
         .maybeSingle()
 
-      if (!checkVendorSlug) {
+      if (existingError) {
+        console.error("Error checking existing slug:", {
+          message: existingError.message || 'No error message',
+          code: existingError.code || 'No error code',
+          details: existingError.details || 'No error details'
+        });
+        // Return a fallback slug with timestamp
+        const timestamp = Date.now().toString().slice(-6)
+        return `${baseSlug}-${timestamp}`
+      }
+
+      // If slug doesn't exist, use it
+      if (!existing) {
         return finalSlug
       }
-    }
 
-    // Try with incrementing number
-    while (counter <= 100) {
-      finalSlug = `${baseSlug}-${counter}`
-      const { data: check } = await supabase
-        .from("products")
-        .select("id")
-        .eq("slug", finalSlug)
+      // Try with vendor-specific prefix
+      const { data: vendor, error: vendorError } = await supabase
+        .from("vendors")
+        // 'business_name' column does not exist in schema; use 'store_name'
+        .select("store_name")
+        .eq("id", vendorId)
         .maybeSingle()
 
-      if (!check) {
-        return finalSlug
-      }
-      counter++
-    }
+      if (vendorError) {
+        // vendorError may be an empty object or have different shape depending on
+        // the Supabase client runtime. Safely stringify to avoid logging `{}`
+        // unhelpful messages and provide a concise fallback.
+        try {
+          const serialized = typeof vendorError === 'object' ? JSON.stringify(vendorError) : String(vendorError)
+          if (serialized && serialized !== '{}' && serialized !== 'null') {
+            console.error('Error fetching vendor data:', serialized)
+          } else {
+            console.warn('Error fetching vendor data: unknown error object', vendorError)
+          }
+        } catch (err) {
+          console.error('Error fetching vendor data (unable to serialize error):', vendorError)
+        }
+      } else if (vendor?.store_name) {
+        const vendorName = vendor.store_name
+        const vendorSlug = generateSlug(vendorName)
+        finalSlug = `${vendorSlug}-${baseSlug}`
 
-    // Last resort: add timestamp
-    const timestamp = Date.now().toString().slice(-6)
-    return `${baseSlug}-${timestamp}`
+        const { data: checkVendorSlug, error: vendorSlugError } = await supabase
+          .from("products")
+          .select("id")
+          .eq("slug", finalSlug)
+          .maybeSingle()
+
+        if (vendorSlugError) {
+          console.error("Error checking vendor slug:", {
+            message: vendorSlugError.message || 'No error message',
+            code: vendorSlugError.code || 'No error code',
+            details: vendorSlugError.details || 'No error details'
+          });
+        } else if (!checkVendorSlug) {
+          return finalSlug
+        }
+      }
+
+      // Try with incrementing number
+      while (counter <= 100) {
+        finalSlug = `${baseSlug}-${counter}`
+        const { data: check, error: checkError } = await supabase
+          .from("products")
+          .select("id")
+          .eq("slug", finalSlug)
+          .maybeSingle()
+
+        if (checkError) {
+          console.error("Error checking incremental slug:", {
+            message: checkError.message || 'No error message',
+            code: checkError.code || 'No error code',
+            details: checkError.details || 'No error details'
+          });
+        } else if (!check) {
+          return finalSlug
+        }
+        counter++
+      }
+
+      // Last resort: add timestamp
+      const timestamp = Date.now().toString().slice(-6)
+      return `${baseSlug}-${timestamp}`
+    } catch (error) {
+      console.error("Unexpected error in slug generation:", {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        error
+      });
+      // Return a fallback slug with timestamp
+      const timestamp = Date.now().toString().slice(-6)
+      return `${generateSlug(baseName)}-${timestamp}`
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -138,11 +253,28 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
 
     // Validate date range: expiration date should not be before production date
     if (productionDate && expirationDate) {
-      const prodDate = new Date(productionDate);
-      const expDate = new Date(expirationDate);
+      try {
+        const prodDate = new Date(productionDate);
+        const expDate = new Date(expirationDate);
 
-      if (expDate < prodDate) {
-        setError("Expiration date cannot be before production date.");
+        if (isNaN(prodDate.getTime()) || isNaN(expDate.getTime())) {
+          setError("Invalid date format provided.");
+          setIsLoading(false);
+          return;
+        }
+
+        if (expDate < prodDate) {
+          setError("Expiration date cannot be before production date.");
+          setIsLoading(false);
+          return;
+        }
+      } catch (dateError) {
+        console.error("Date validation error in submit:", {
+          message: dateError instanceof Error ? dateError.message : 'Unknown date error',
+          productionDate,
+          expirationDate
+        });
+        setError("Invalid date format provided.");
         setIsLoading(false);
         return;
       }
@@ -177,6 +309,8 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
         slug: uniqueSlug,
         description: description || null,
         price: parseFloat(price),
+        sku: sku || null,
+        barcode: barcode || null,
         compare_at_price: compareAtPrice ? parseFloat(compareAtPrice) : null,
         stock_quantity: parseInt(stockQuantity) || 0, // CHANGED: inventory_count → stock_quantity
         category_id: categoryId || null,
@@ -211,37 +345,20 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
         console.log("Update response:", { data, error })
 
         if (error) {
-          console.error("Update error details:", error)
-
-          // If the error is due to unknown columns, try updating without the date fields
-          if (error.message && (error.message.includes('production_date') || error.message.includes('expiration_date'))) {
-            // Create update data without date fields
-            const updateDataWithoutDates: any = { ...updateData };
-            delete updateDataWithoutDates.production_date;
-            delete updateDataWithoutDates.expiration_date;
-
-            console.log("Retrying update without date fields:", updateDataWithoutDates);
-
-            const { data: retryData, error: retryError } = await supabase
-              .from("products")
-              .update(updateDataWithoutDates)
-              .eq("id", product.id)
-              .select()
-
-            if (retryError) {
-              console.error("Retry update also failed:", retryError)
-              setError(`Failed to update product: ${retryError.message}`)
-              setIsLoading(false)
-              return
-            }
-
-            console.log("Retry update successful:", retryData);
-          } else {
-            setError(`Failed to update product: ${error.message}`)
-            setIsLoading(false)
-            return
-          }
-        }
+  console.error("Update error details:", {
+    message: error.message || 'No error message',
+    code: error.code || 'No error code',
+    details: error.details || 'No error details',
+    hint: error.hint || 'No error hint'
+  });
+  
+  // Log the full error for debugging
+  console.error("Full error:", JSON.stringify(error, null, 2));
+  
+  setError(`Failed to update product: ${error.message || 'Unknown error'}`);
+  setIsLoading(false);
+  return;
+}
 
         console.log("Update successful, data returned:", data)
       } else {
@@ -254,7 +371,12 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
         console.log("Create response:", { data, error })
 
         if (error) {
-          console.error("Create error details:", error);
+          console.error("Create error details:", {
+            message: error.message || 'No error message',
+            code: error.code || 'No error code',
+            details: error.details || 'No error details',
+            fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+          });
 
           // If the error is due to unknown columns, try inserting without the date fields
           if (error.message && (error.message.includes('production_date') || error.message.includes('expiration_date'))) {
@@ -274,8 +396,12 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
             error = result.error;
 
             if (error) {
-              console.error("Retry insert also failed:", error)
-              setError(`Failed to create product: ${error.message}`)
+              console.error("Retry insert also failed:", {
+                message: error.message || 'No error message',
+                code: error.code || 'No error code',
+                details: error.details || 'No error details'
+              });
+              setError(`Failed to create product: ${error.message || 'Unknown error'}`)
               setIsLoading(false)
               return
             }
@@ -300,7 +426,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
               return
             }
           } else {
-            setError(`Failed to create product: ${error.message}`)
+            setError(`Failed to create product: ${error.message || 'Unknown error'}`)
             setIsLoading(false)
             return
           }
@@ -311,7 +437,11 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
       router.push("/dashboard/products")
       router.refresh()
     } catch (err) {
-      console.error("Unexpected error:", err)
+      console.error("Unexpected error:", {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : 'No stack trace',
+        error: err
+      });
       setError("An unexpected error occurred. Please try again.")
       setIsLoading(false)
     }
@@ -353,7 +483,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe your product"
-          className="min-h-[120px]  resize-none"
+          className="min-h-30 resize-none"
         />
       </div>
 
@@ -371,25 +501,69 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
-             
+
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="compareAtPrice">SKU</Label>
+        {/* <div className="space-y-2">
+          <Label htmlFor="sku">SKU</Label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></span>
             <Input
-              id="SKU"
+              id="sku"
               type="text"
-              value={compareAtPrice}
-              onChange={(e) => setCompareAtPrice(e.target.value)}
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
               placeholder="Enter SKU"
-             
+
             />
           </div>
+        </div> */}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="barcode">Barcode</Label>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"></span>
+              <Input
+                id="barcode"
+                type="text"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                ref={barcodeRef}
+                onKeyDown={handleBarcodeInputKeyDown}
+                placeholder="Enter product barcode (UPC, EAN, etc.)"
+              />
+            </div>
+            <div className="w-36">
+              <Button type="button" onClick={() => setScannerOpen(true)} className="w-full">
+                Scan Barcode
+              </Button>
+            </div>
+          </div>
+          {/* Barcode scanner dialog */}
+          <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} onScan={handleScannedBarcode} />
         </div>
+
+        {/* <div className="space-y-2">
+          <Label htmlFor="compareAtPrice">Compare At Price</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+            <Input
+              id="compareAtPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              value={compareAtPrice}
+              onChange={(e) => setCompareAtPrice(e.target.value)}
+              placeholder="0.00"
+
+            />
+          </div>
+        </div> */}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -402,6 +576,7 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
             required
             value={stockQuantity}
             onChange={(e) => setStockQuantity(e.target.value)}
+            ref={stockRef}
            
           />
           {product && (
@@ -441,13 +616,27 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
 
               // If expiration date exists and is before new production date, clear it or adjust it
               if (expirationDate && newProductionDate) {
-                const newProdDate = new Date(newProductionDate);
-                const expDate = new Date(expirationDate);
+                try {
+                  const newProdDate = new Date(newProductionDate);
+                  const expDate = new Date(expirationDate);
 
-                if (expDate < newProdDate) {
-                  // Automatically set expiration date to production date if it's invalid
-                  setExpirationDate(newProductionDate);
-                  setError(null); // Clear any error since we're auto-correcting
+                  if (isNaN(newProdDate.getTime()) || isNaN(expDate.getTime())) {
+                    setError("Invalid date format provided.");
+                    return;
+                  }
+
+                  if (expDate < newProdDate) {
+                    // Automatically set expiration date to production date if it's invalid
+                    setExpirationDate(newProductionDate);
+                    setError(null); // Clear any error since we're auto-correcting
+                  }
+                } catch (dateError) {
+                  console.error("Date validation error in production date change:", {
+                    message: dateError instanceof Error ? dateError.message : 'Unknown date error',
+                    newProductionDate,
+                    expirationDate
+                  });
+                  setError("Invalid date format provided.");
                 }
               }
             }}
@@ -467,17 +656,32 @@ export function ProductForm({ vendorId, categories, product }: ProductFormProps)
             onChange={(e) => {
               const newExpirationDate = e.target.value;
               if (productionDate && newExpirationDate) {
-                const prodDate = new Date(productionDate);
-                const expDate = new Date(newExpirationDate);
+                try {
+                  const prodDate = new Date(productionDate);
+                  const expDate = new Date(newExpirationDate);
 
-                if (expDate < prodDate) {
-                  setError("Expiration date cannot be before production date.");
-                  return;
-                } else {
-                  // Clear the error if dates are valid (but only if it's related to date validation)
-                  if (error && error.includes("cannot be before")) {
-                    setError(null);
+                  if (isNaN(prodDate.getTime()) || isNaN(expDate.getTime())) {
+                    setError("Invalid date format provided.");
+                    return;
                   }
+
+                  if (expDate < prodDate) {
+                    setError("Expiration date cannot be before production date.");
+                    return;
+                  } else {
+                    // Clear the error if dates are valid (but only if it's related to date validation)
+                    if (error && error.includes("cannot be before")) {
+                      setError(null);
+                    }
+                  }
+                } catch (dateError) {
+                  console.error("Date validation error in expiration date change:", {
+                    message: dateError instanceof Error ? dateError.message : 'Unknown date error',
+                    productionDate,
+                    newExpirationDate
+                  });
+                  setError("Invalid date format provided.");
+                  return;
                 }
               }
               setExpirationDate(newExpirationDate);

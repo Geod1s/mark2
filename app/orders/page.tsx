@@ -1,127 +1,15 @@
-// import { createClient } from "@/lib/supabase/server"
-// import { Header } from "@/components/header"
-// import { Footer } from "@/components/footer"
-// import { redirect } from "next/navigation"
-// import Link from "next/link"
-// import { Package } from "lucide-react"
-
-// export default async function OrdersPage() {
-//   const supabase = await createClient()
-//   const {
-//     data: { user },
-//   } = await supabase.auth.getUser()
-
-//   if (!user) {
-//     redirect("/auth/login?redirect=/orders")
-//   }
-
-//   const { data: orders } = await supabase
-//     .from("orders")
-//     .select("*, vendor:vendors(store_name, slug), order_items(*, product:products(name, images))")
-//     .eq("user_id", user.id)
-//     .order("created_at", { ascending: false })
-
-//   const statusColors: Record<string, string> = {
-//     pending: "bg-yellow-500/10 text-yellow-500",
-//     processing: "bg-blue-500/10 text-blue-500",
-//     shipped: "bg-purple-500/10 text-purple-500",
-//     delivered: "bg-green-500/10 text-green-500",
-//     cancelled: "bg-red-500/10 text-red-500",
-//   }
-
-//   return (
-//     <div className="min-h-screen flex flex-col bg-background">
-//       <Header />
-//       <main className="flex-1">
-//         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-//           <h1 className="text-3xl font-semibold tracking-tight">My Orders</h1>
-//           <p className="mt-1 text-muted-foreground">Track and manage your purchases</p>
-
-//           {orders && orders.length > 0 ? (
-//             <div className="mt-8 space-y-4">
-//               {orders.map((order) => (
-//                 <div key={order.id} className="rounded-lg border border-border bg-card overflow-hidden">
-//                   <div className="flex items-center justify-between p-4 border-b border-border bg-secondary/30">
-//                     <div className="flex items-center gap-4">
-//                       <div>
-//                         <p className="text-sm text-muted-foreground">Order</p>
-//                         <p className="font-mono font-medium">#{order.id.slice(0, 8)}</p>
-//                       </div>
-//                       <div className="hidden sm:block">
-//                         <p className="text-sm text-muted-foreground">Date</p>
-//                         <p className="font-medium">{new Date(order.created_at).toLocaleDateString()}</p>
-//                       </div>
-//                       <div className="hidden sm:block">
-//                         <p className="text-sm text-muted-foreground">Vendor</p>
-//                         <Link href={`/vendors/${order.vendor?.slug}`} className="font-medium hover:underline">
-//                           {order.vendor?.store_name}
-//                         </Link>
-//                       </div>
-//                     </div>
-//                     <div className="text-right">
-//                       <span
-//                         className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusColors[order.status]}`}
-//                       >
-//                         {order.status}
-//                       </span>
-//                       <p className="mt-1 font-semibold">${Number(order.total_amount).toFixed(2)}</p>
-//                     </div>
-//                   </div>
-
-//                   <div className="p-4">
-//                     <div className="space-y-3">
-//                       {order.order_items?.map((item: any) => (
-//                         <div key={item.id} className="flex items-center gap-3">
-//                           <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-secondary">
-//                             <img
-//                               src={
-//                                 item.product?.images?.[0] ||
-//                                 `/placeholder.svg?height=48&width=48&query=${encodeURIComponent(item.product_name)}`
-//                               }
-//                               alt={item.product_name}
-//                               className="h-full w-full object-cover"
-//                             />
-//                           </div>
-//                           <div className="flex-1 min-w-0">
-//                             <p className="font-medium truncate">{item.product_name}</p>
-//                             <p className="text-sm text-muted-foreground">
-//                               {item.quantity} x ${Number(item.unit_price).toFixed(2)}
-//                             </p>
-//                           </div>
-//                         </div>
-//                       ))}
-//                     </div>
-//                   </div>
-//                 </div>
-//               ))}
-//             </div>
-//           ) : (
-//             <div className="mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
-//               <Package className="h-12 w-12 text-muted-foreground/50" />
-//               <p className="mt-4 text-muted-foreground">No orders yet</p>
-//               <Link href="/products" className="mt-2 text-sm text-foreground underline-offset-4 hover:underline">
-//                 Start shopping
-//               </Link>
-//             </div>
-//           )}
-//         </div>
-//       </main>
-//       <Footer />
-//     </div>
-//   )
-// }
-
-//// v2 ////
-
 import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Package, DollarSign, CreditCard } from "lucide-react"
+import React from "react"
 
 export default async function OrdersPage() {
+  // Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -146,13 +34,13 @@ export default async function OrdersPage() {
 
   // Combine and sort all orders by date
   const allOrders = [
-    ...(stripeOrders || []).map(order => ({
+    ...(stripeOrders || []).map((order: any) => ({
       ...order,
       type: 'stripe' as const,
       payment_type: 'card',
       payment_icon: <CreditCard className="h-3 w-3" />
     })),
-    ...(cashOrders || []).map(order => ({
+    ...(cashOrders || []).map((order: any) => ({
       ...order,
       type: 'cash' as const,
       payment_type: order.payment_method || 'cash',
@@ -160,7 +48,7 @@ export default async function OrdersPage() {
       // Add empty order_items array for consistency
       order_items: []
     }))
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  ].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-500/10 text-yellow-500",
@@ -193,7 +81,7 @@ export default async function OrdersPage() {
 
           {allOrders.length > 0 ? (
             <div className="mt-8 space-y-4">
-              {allOrders.map((order) => {
+              {allOrders.map((order: any) => {
                 const orderItems = order.type === 'stripe' 
                   ? order.order_items 
                   : getCashOrderItems(order)
@@ -347,7 +235,7 @@ export default async function OrdersPage() {
                     Card Payments
                   </span>
                   <span className="font-semibold">
-                    {allOrders.filter(o => o.type === 'stripe').length}
+                    {allOrders.filter((o: any) => o.type === 'stripe').length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-md">
@@ -356,7 +244,7 @@ export default async function OrdersPage() {
                     Cash Orders
                   </span>
                   <span className="font-semibold">
-                    {allOrders.filter(o => o.type === 'cash').length}
+                    {allOrders.filter((o: any) => o.type === 'cash').length}
                   </span>
                 </div>
               </div>

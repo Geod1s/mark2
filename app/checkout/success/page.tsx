@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { CheckCircle, Package, ArrowRight } from "lucide-react"
 
 export default async function CheckoutSuccessPage() {
+  // Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()

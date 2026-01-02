@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
+    // Add 'await' here
     const supabase = await createClient()
     
     // Get the current user

@@ -1,3 +1,4 @@
+// app/become-vendor/page.tsx
 import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -6,17 +7,28 @@ import { redirect } from "next/navigation"
 import { Store, CheckCircle, CreditCard, Package } from "lucide-react"
 
 export default async function BecomeVendorPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  const supabase = await createClient() // Add await here
+  
+  // Get user data with proper error handling
+  const { data: userData, error: authError } = await supabase.auth.getUser()
+  
+  if (authError || !userData?.user) {
     redirect("/auth/login?redirect=/become-vendor")
   }
 
+  const user = userData.user;
+
   // Check if user is already a vendor
-  const { data: vendor } = await supabase.from("vendors").select("*").eq("user_id", user.id).maybeSingle()
+  const { data: vendor, error: vendorError } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  // If there's an error or vendor already exists, redirect
+  if (vendorError) {
+    console.error("Error checking vendor status:", vendorError)
+  }
 
   if (vendor) {
     redirect("/dashboard")
@@ -31,10 +43,6 @@ export default async function BecomeVendorPage() {
             {/* Left: Info */}
             <div>
               <h1 className="text-4xl font-semibold tracking-tight">Start selling on Marketplace</h1>
-              {/* <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-                Join thousands of independent sellers and reach customers worldwide. Set up your store in minutes and
-                start earning.
-              </p> */}
 
               <div className="mt-12 space-y-8">
                 <div className="flex gap-4">
@@ -60,30 +68,6 @@ export default async function BecomeVendorPage() {
                     </p>
                   </div>
                 </div>
-
-                {/* <div className="flex gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
-                    <CreditCard className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Get paid securely</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Connect with Stripe to receive payments directly
-                    </p>
-                  </div>
-                </div> */}
-
-                {/* <div className="flex gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
-                    <CheckCircle className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Start selling</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Your products go live and customers can start buying
-                    </p>
-                  </div>
-                </div> */}
               </div>
             </div>
 

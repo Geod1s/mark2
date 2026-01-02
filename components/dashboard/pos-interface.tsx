@@ -1,31 +1,33 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRefresh } from "@/hooks/use-refresh"
 import type { Vendor, Product } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Search, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  ShoppingCart, 
-  CreditCard, 
+import {
+  Search,
+  Plus,
+  Minus,
+  Trash2,
+  ShoppingCart,
+  CreditCard,
   DollarSign,
   User,
   Check,
   X,
-  Package
+  Package,
+  Printer,
+  Scan
 } from "lucide-react"
 import { toast } from "sonner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Grid3X3, List } from "lucide-react"
+import { BarcodeScanner } from "@/components/barcode-scanner"
 
 interface CartItem {
   id: string
@@ -43,7 +45,6 @@ interface CustomerInfo {
   email: string
 }
 
-// Extended Product type with optional POS-specific fields
 interface ProductWithStock extends Product {
   stock_quantity?: number
   sku?: string
@@ -54,7 +55,6 @@ interface POSInterfaceProps {
   products: Product[]
 }
 
-// Server action for creating POS orders
 async function createPOSOrder(orderData: {
   vendor_id: string
   total_amount: number
@@ -91,19 +91,7 @@ async function createPOSOrder(orderData: {
 
 export function POSInterface({ vendor, products }: POSInterfaceProps) {
   const [cart, setCart] = useState<CartItem[]>([])
-  // Store original products to reference original stock
   const [originalProducts] = useState<Product[]>(products)
-  // Local products will have updated stock based on cart items
-  const [localProducts, setLocalProducts] = useState<Product[]>(() => {
-    // Initialize local products with stock adjusted for any items already in cart (though cart starts empty)
-    return products.map(product => {
-      const productWithStock = product as ProductWithStock;
-      return {
-        ...product,
-        stock_quantity: productWithStock.stock_quantity
-      };
-    });
-  })
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("products")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -114,6 +102,7 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
   })
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
   const { refresh } = useRefresh()
 
   // Calculate available stock based on original stock minus cart quantities
@@ -130,10 +119,11 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
     };
   });
 
-  // Filter products based on search
+  // Filter products based on search (name, description, or barcode)
   const filteredProducts = productsWithAvailableStock.filter(product =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (product as ProductWithStock).barcode?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Group products by category
@@ -146,23 +136,229 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
     return acc
   }, {} as Record<string, Product[]>)
 
+  // Internal print receipt function
+  const internalPrintReceipt = (receiptData: any) => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      toast.error("Failed to open print window. Please check your popup blocker.")
+      return
+    }
+
+    const receiptHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Receipt - ${vendor.store_name}</title>
+        <meta charset="utf-8">
+        <style>
+          body {
+            font-family: 'Courier New', monospace;
+            padding: 15px;
+            max-width: 300px;
+            margin: 0 auto;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #000;
+          }
+          .store-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .receipt-info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+          }
+          .order-id {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 10px 0;
+          }
+          .customer-info {
+            margin: 10px 0;
+            font-size: 12px;
+          }
+          .items {
+            margin: 15px 0;
+          }
+          .item-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px dotted #ddd;
+          }
+          .item-name {
+            flex: 3;
+            font-size: 12px;
+          }
+          .item-qty {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+          }
+          .item-price {
+            flex: 2;
+            text-align: right;
+            font-size: 12px;
+          }
+          .total {
+            margin-top: 20px;
+            border-top: 2px solid #000;
+            padding-top: 10px;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+          }
+          .grand-total {
+            font-weight: bold;
+            font-size: 16px;
+          }
+          .payment-method {
+            margin-top: 15px;
+            font-size: 12px;
+            text-align: center;
+            padding-top: 10px;
+            border-top: 1px dashed #000;
+          }
+          .thank-you {
+            text-align: center;
+            margin-top: 20px;
+            font-style: italic;
+            font-size: 12px;
+            padding-top: 10px;
+            border-top: 1px dashed #000;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 10px;
+            color: #666;
+          }
+          @media print {
+            body {
+              font-size: 12px;
+              padding: 0;
+              margin: 0;
+            }
+            .no-print {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="store-name">${vendor.store_name}</div>
+          <div class="receipt-info">${receiptData.date}</div>
+          <div class="order-id">Receipt #${receiptData.orderId.slice(-8).toUpperCase()}</div>
+        </div>
+
+        <div class="customer-info">
+          ${receiptData.customerInfo.name ? `<div><strong>Customer:</strong> ${receiptData.customerInfo.name}</div>` : ''}
+          ${receiptData.customerInfo.phone ? `<div><strong>Phone:</strong> ${receiptData.customerInfo.phone}</div>` : ''}
+          ${receiptData.customerInfo.email ? `<div><strong>Email:</strong> ${receiptData.customerInfo.email}</div>` : ''}
+        </div>
+
+        <div class="items">
+          ${receiptData.items.map((item: any) => `
+            <div class="item-row">
+              <div class="item-name">${item.name}</div>
+              <div class="item-qty">${item.quantity} x $${item.price.toFixed(2)}</div>
+              <div class="item-price">$${(item.price * item.quantity).toFixed(2)}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="total">
+          <div class="total-row">
+            <div>Subtotal:</div>
+            <div>$${receiptData.subtotal.toFixed(2)}</div>
+          </div>
+          <div class="total-row grand-total">
+            <div>TOTAL:</div>
+            <div>$${receiptData.total.toFixed(2)}</div>
+          </div>
+          <div class="payment-method">
+            <div><strong>Payment Method:</strong> ${receiptData.paymentMethod === 'cash' ? 'CASH' : 'CARD'}</div>
+          </div>
+        </div>
+
+        <div class="thank-you">
+          Thank you for your purchase!
+        </div>
+
+        <div class="footer">
+          <div>${vendor.store_name}</div>
+          <div>Thank you for your business!</div>
+        </div>
+
+        <div class="no-print" style="text-align: center; margin-top: 20px;">
+          <button onclick="window.print()" style="padding: 10px 20px; background: #000; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Print Receipt
+          </button>
+          <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+            Close
+          </button>
+        </div>
+
+        <script>
+          // Auto-print after 500ms
+          setTimeout(() => {
+            window.print();
+            // Keep window open after printing
+            setTimeout(() => {
+              window.focus();
+            }, 500);
+          }, 500);
+        </script>
+      </body>
+      </html>
+    `
+
+    printWindow.document.write(receiptHTML)
+    printWindow.document.close()
+  }
+
+  // Handle barcode scan
+  const handleBarcodeScan = (barcode: string) => {
+    // Find product by barcode
+    const product = originalProducts.find(p =>
+      (p as ProductWithStock).barcode && (p as ProductWithStock).barcode === barcode
+    );
+
+    if (product) {
+      addToCart(product);
+      toast.success(`Added ${product.name} to cart`);
+    } else {
+      toast.error(`Product with barcode ${barcode} not found`);
+    }
+  };
+
   // Add product to cart
   const addToCart = (product: Product) => {
-    const productWithStock = product as ProductWithStock
-    const originalStock = productWithStock.stock_quantity || 0
-
-    // Calculate current available stock based on cart
-    const existingCartItem = cart.find(item => item.product_id === product.id);
-    const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
-    const availableStock = originalStock - currentCartQuantity;
-
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.product_id === product.id)
 
+      // Get the original stock for this product
+      const originalProduct = originalProducts.find(p => p.id === product.id);
+      const originalStock = (originalProduct as ProductWithStock)?.stock_quantity || 0;
+
+      // Calculate available stock based on all items in cart for this product
+      const otherCartItems = prevCart.filter(i => i.product_id === product.id);
+      const otherQuantity = otherCartItems.reduce((sum, cartItem) => sum + cartItem.quantity, 0);
+      const availableStock = originalStock - otherQuantity;
+
       if (existingItem) {
-        // Check stock
-        if (availableStock <= existingItem.quantity) {
-          toast.error(`Only ${availableStock + existingItem.quantity} items available`)
+        // Check stock for adding one more
+        if (availableStock < 1) {
+          toast.error(`Only ${originalStock - otherQuantity + existingItem.quantity} items available`)
           return prevCart
         }
 
@@ -173,7 +369,7 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
             : item
         )
       } else {
-        // Check stock
+        // Check stock for adding new item
         if (availableStock < 1) {
           toast.error("Out of stock")
           return prevCart
@@ -243,222 +439,154 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const total = subtotal
 
-  // Handle payment
-  const handlePayment = async () => {
-  if (cart.length === 0) {
-    toast.error("Cart is empty")
-    return
-  }
-
-  if (total <= 0) {
-    toast.error("Invalid total amount")
-    return
-  }
-
-  setIsProcessing(true)
-
-  try {
-    const supabase = createClient()
-
-    // Create cash order items
-    const orderItems = cart.map(item => ({
-      product_id: item.product_id,
-      quantity: item.quantity,
-      price: item.price,
-      product_name: item.name,
-      vendor_id: vendor.id,
-      vendor_name: vendor.store_name
-    }))
-
-    // Create POS order using server action
-    const result = await createPOSOrder({
-      vendor_id: vendor.id,
-      total_amount: total,
-      items: orderItems,
-      customer_name: customerInfo.name || "Walk-in Customer",
-      customer_email: customerInfo.email || "",
-      customer_phone: customerInfo.phone || "",
-      delivery_address: "In-store pickup",
-      payment_method: paymentMethod,
-      status: paymentMethod === 'cash' ? 'paid' : 'pending',
-      is_pos_order: true
-    })
-
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to create order')
+  // Handle print receipt button click
+  const handlePrintReceiptClick = () => {
+    if (cart.length === 0) {
+      toast.error("Cart is empty")
+      return
     }
 
-    // Update product stock for each item
-    for (const item of cart) {
-      // First, get current stock
-      const { data: product, error: fetchError } = await supabase
-        .from('products')
-        .select('stock_quantity')
-        .eq('id', item.product_id)
-        .single()
-
-      if (fetchError) {
-        console.error(`Error fetching product ${item.product_id}:`, fetchError)
-        continue // Skip this product but continue with others
-      }
-
-      // Calculate new stock
-      const currentStock = product.stock_quantity || 0
-      const newStock = Math.max(0, currentStock - item.quantity)
-
-      // Update stock in database
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({
-          stock_quantity: newStock,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', item.product_id)
-
-      if (updateError) {
-        console.error(`Error updating stock for product ${item.product_id}:`, updateError)
-      } else {
-        console.log(`Stock updated for product ${item.product_id}: ${currentStock} -> ${newStock}`)
-      }
-    }
-
-    // Generate receipt
     const receiptData = {
-      orderId: result.order.id,
+      orderId: `TEMP-${Date.now()}`,
       date: new Date().toLocaleString(),
       items: cart,
       subtotal,
       total,
       paymentMethod,
-      customerInfo
+      customerInfo,
+      vendor
     }
 
-    // Show success
-    toast.success("Sale completed successfully!", {
-      action: {
-        label: "Print Receipt",
-        onClick: () => printReceipt(receiptData)
-      }
-    })
-
-    // Clear cart and reset
-    clearCart()
-    setCustomerInfo({ name: "", phone: "", email: "" })
-
-    // Show success message and refresh the page to get updated stock from database
-    toast.success("Sale completed successfully!", {
-      action: {
-        label: "Print Receipt",
-        onClick: () => printReceipt(receiptData)
-      }
-    });
-
-    // Refresh the page to update product stock and clear any cached data
-    setTimeout(() => {
-      refresh()
-    }, 1000) // Delay slightly to allow for UI feedback
-    
-  } catch (error) {
-    console.error("Payment error:", error)
-    toast.error(error instanceof Error ? error.message : "Failed to process payment. Please try again.")
-  } finally {
-    setIsProcessing(false)
+    internalPrintReceipt(receiptData)
   }
-}
 
-  // Print receipt
-  const printReceipt = (receiptData: any) => {
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) return
+  // Handle payment
+  const handlePayment = async () => {
+    if (cart.length === 0) {
+      toast.error("Cart is empty")
+      return
+    }
 
-    const receiptHTML = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Receipt</title>
-        <style>
-          body { font-family: monospace; padding: 20px; }
-          .header { text-align: center; margin-bottom: 20px; }
-          .store-name { font-size: 18px; font-weight: bold; }
-          .order-id { font-size: 12px; color: #666; }
-          .items { margin: 20px 0; }
-          .item-row { display: flex; justify-content: space-between; margin: 5px 0; }
-          .item-name { flex: 2; }
-          .item-qty { flex: 1; text-align: center; }
-          .item-price { flex: 1; text-align: right; }
-          .total { margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; }
-          .total-row { display: flex; justify-content: space-between; margin: 5px 0; }
-          .thank-you { text-align: center; margin-top: 30px; font-style: italic; }
-          @media print {
-            body { font-size: 12px; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="store-name">${vendor.store_name}</div>
-          <div class="order-id">Order #${receiptData.orderId.slice(0, 8)}</div>
-          <div>${receiptData.date}</div>
-        </div>
-        
-        ${receiptData.customerInfo.name ? `<div>Customer: ${receiptData.customerInfo.name}</div>` : ''}
-        ${receiptData.customerInfo.phone ? `<div>Phone: ${receiptData.customerInfo.phone}</div>` : ''}
-        
-        <div class="items">
-          ${receiptData.items.map((item: any) => `
-            <div class="item-row">
-              <div class="item-name">${item.name}</div>
-              <div class="item-qty">${item.quantity}x</div>
-              <div class="item-price">$${(item.price * item.quantity).toFixed(2)}</div>
-            </div>
-          `).join('')}
-        </div>
-        
-        <div class="total">
-          <div class="total-row">
-            <div>Subtotal:</div>
-            <div>$${receiptData.subtotal.toFixed(2)}</div>
-          </div>
-          <div class="total-row" style="font-weight: bold;">
-            <div>Total:</div>
-            <div>$${receiptData.total.toFixed(2)}</div>
-          </div>
-          <div class="total-row">
-            <div>Payment:</div>
-            <div>${receiptData.paymentMethod === 'cash' ? 'Cash' : 'Card'}</div>
-          </div>
-        </div>
-        
-        <div class="thank-you">
-          Thank you for your purchase!
-        </div>
-        
-        <script>
-          window.onload = () => {
-            window.print();
-            setTimeout(() => window.close(), 1000);
-          }
-        </script>
-      </body>
-      </html>
-    `
+    if (total <= 0) {
+      toast.error("Invalid total amount")
+      return
+    }
 
-    printWindow.document.write(receiptHTML)
-    printWindow.document.close()
+    setIsProcessing(true)
+
+    try {
+      const supabase = createClient()
+
+      // Create cash order items
+      const orderItems = cart.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: item.price,
+        product_name: item.name,
+        vendor_id: vendor.id,
+        vendor_name: vendor.store_name
+      }))
+
+      // Create POS order using server action
+      const result = await createPOSOrder({
+        vendor_id: vendor.id,
+        total_amount: total,
+        items: orderItems,
+        customer_name: customerInfo.name || "Walk-in Customer",
+        customer_email: customerInfo.email || "",
+        customer_phone: customerInfo.phone || "",
+        delivery_address: "In-store pickup",
+        payment_method: paymentMethod,
+        status: paymentMethod === 'cash' ? 'paid' : 'pending',
+        is_pos_order: true
+      })
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create order')
+      }
+
+      // Update product stock for each item
+      for (const item of cart) {
+        // First, get current stock
+        const { data: product, error: fetchError } = await supabase
+          .from('products')
+          .select('stock_quantity')
+          .eq('id', item.product_id)
+          .single()
+
+        if (fetchError) {
+          console.error(`Error fetching product ${item.product_id}:`, fetchError)
+          continue
+        }
+
+        // Calculate new stock
+        const currentStock = product.stock_quantity || 0
+        const newStock = Math.max(0, currentStock - item.quantity)
+
+        // Update stock in database
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({
+            stock_quantity: newStock,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.product_id)
+
+        if (updateError) {
+          console.error(`Error updating stock for product ${item.product_id}:`, updateError)
+        }
+      }
+
+      // Generate receipt
+      const receiptData = {
+        orderId: result.order.id,
+        date: new Date().toLocaleString(),
+        items: cart,
+        subtotal,
+        total,
+        paymentMethod,
+        customerInfo,
+        vendor
+      }
+
+      // Show success with option to print receipt
+      toast.success("Sale completed successfully!", {
+        action: {
+          label: "Print Receipt",
+          onClick: () => internalPrintReceipt(receiptData)
+        }
+      })
+
+      // Clear cart and reset
+      clearCart()
+      setCustomerInfo({ name: "", phone: "", email: "" })
+
+      // Refresh the page to update product stock and clear any cached data
+      setTimeout(() => {
+        refresh()
+      }, 1000)
+      
+    } catch (error) {
+      console.error("Payment error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to process payment. Please try again.")
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   // Quick add buttons for common quantities
   const quickAdd = (product: Product, quantity: number) => {
-    const productWithStock = product as ProductWithStock
-    const originalStock = productWithStock.stock_quantity || 0
-
-    // Calculate current available stock based on cart
-    const existingCartItem = cart.find(item => item.product_id === product.id);
-    const currentCartQuantity = existingCartItem ? existingCartItem.quantity : 0;
-    const availableStock = originalStock - currentCartQuantity;
-
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.product_id === product.id)
+
+      // Get the original stock for this product
+      const originalProduct = originalProducts.find(p => p.id === product.id);
+      const originalStock = (originalProduct as ProductWithStock)?.stock_quantity || 0;
+
+      // Calculate available stock based on all items in cart for this product
+      const otherCartItems = prevCart.filter(i => i.product_id === product.id);
+      const otherQuantity = otherCartItems.reduce((sum, cartItem) => sum + cartItem.quantity, 0);
+      const availableStock = originalStock - otherQuantity;
 
       if (existingItem) {
         const newQuantity = existingItem.quantity + quantity
@@ -495,6 +623,7 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
   }
 
   return (
+     <>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
       {/* Left Panel - Products */}
       <div className="lg:col-span-2 flex flex-col">
@@ -509,20 +638,30 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
               className="pl-10"
             />
           </div>
-          <ToggleGroup
-            type="single"
-            value={viewMode}
-            onValueChange={(value) => value && setViewMode(value as "grid" | "list")}
-            defaultValue="grid"
-            className="flex-shrink-0"
-          >
-            <ToggleGroupItem value="grid" aria-label="Grid view">
-              <Grid3X3 className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="list" aria-label="List view">
-              <List className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowBarcodeScanner(true)}
+              className="shrink-0"
+            >
+              <Scan className="h-4 w-4" />
+            </Button>
+            <ToggleGroup
+              type="single"
+              value={viewMode}
+              onValueChange={(value) => value && setViewMode(value as "grid" | "list")}
+              defaultValue="grid"
+              className="shrink-0"
+            >
+              <ToggleGroupItem value="grid" aria-label="Grid view">
+                <Grid3X3 className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="list" aria-label="List view">
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </div>
 
         {/* Product Categories Tabs */}
@@ -542,6 +681,8 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
                       product={product}
                       onAdd={() => addToCart(product)}
                       onQuickAdd={(qty) => quickAdd(product, qty)}
+                      cart={cart}
+                      originalProducts={originalProducts}
                     />
                   ))}
                 </div>
@@ -553,6 +694,8 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
                       product={product}
                       onAdd={() => addToCart(product)}
                       onQuickAdd={(qty) => quickAdd(product, qty)}
+                      cart={cart}
+                      originalProducts={originalProducts}
                     />
                   ))}
                 </div>
@@ -573,6 +716,8 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
                           product={product}
                           onAdd={() => addToCart(product)}
                           onQuickAdd={(qty) => quickAdd(product, qty)}
+                          cart={cart}
+                          originalProducts={originalProducts}
                         />
                       ))}
                     </div>
@@ -584,6 +729,8 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
                           product={product}
                           onAdd={() => addToCart(product)}
                           onQuickAdd={(qty) => quickAdd(product, qty)}
+                          cart={cart}
+                          originalProducts={originalProducts}
                         />
                       ))}
                     </div>
@@ -604,15 +751,27 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
                 <ShoppingCart className="h-5 w-5" />
                 Current Sale
               </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearCart}
-                disabled={cart.length === 0}
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Clear
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintReceiptClick}
+                  disabled={cart.length === 0}
+                  className="flex items-center gap-1"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearCart}
+                  disabled={cart.length === 0}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              </div>
             </div>
           </CardHeader>
           
@@ -726,22 +885,22 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
             <div className="mt-4 space-y-2">
               <h4 className="font-medium">Payment Method</h4>
               <div className="grid grid-cols-2 gap-2">
-                {/* <Button
+                <Button
                   variant={paymentMethod === 'cash' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('cash')}
                   className="flex items-center gap-2"
                 >
                   <DollarSign className="h-4 w-4" />
                   Cash
-                </Button> */}
-                {/* <Button
+                </Button>
+                <Button
                   variant={paymentMethod === 'card' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('card')}
                   className="flex items-center gap-2"
                 >
                   <CreditCard className="h-4 w-4" />
                   Card
-                </Button> */}
+                </Button>
               </div>
             </div>
 
@@ -768,22 +927,36 @@ export function POSInterface({ vendor, products }: POSInterfaceProps) {
         </Card>
       </div>
     </div>
-  )
+
+    <BarcodeScanner
+      open={showBarcodeScanner}
+      onOpenChange={setShowBarcodeScanner}
+      onScan={handleBarcodeScan}
+    />
+  </>
+)
 }
 
 // Product Card Component
-function ProductCard({ 
-  product, 
+function ProductCard({
+  product,
   onAdd,
-  onQuickAdd 
-}: { 
+  onQuickAdd,
+  cart,
+  originalProducts,
+}: {
   product: Product
   onAdd: () => void
   onQuickAdd: (quantity: number) => void
+  cart: CartItem[]
+  originalProducts: Product[]
 }) {
   const productWithStock = product as ProductWithStock
-  const stockQuantity = productWithStock.stock_quantity
-  const isOutOfStock = stockQuantity !== undefined && stockQuantity <= 0
+  const originalStock = (originalProducts.find(p => p.id === product.id) as ProductWithStock)?.stock_quantity || 0
+  const cartItem = cart.find(item => item.product_id === product.id)
+  const cartQuantity = cartItem ? cartItem.quantity : 0
+  const availableStock = Math.max(0, originalStock - cartQuantity)
+  const isOutOfStock = availableStock <= 0
 
   return (
     <div className={`border rounded-lg overflow-hidden hover:shadow-md transition-shadow ${isOutOfStock ? 'opacity-50' : ''}`}>
@@ -812,9 +985,9 @@ function ProductCard({
           
           <div className="text-right">
             <p className="font-semibold">${product.price.toFixed(2)}</p>
-            {stockQuantity !== undefined && (
+            {originalStock !== undefined && (
               <p className={`text-xs ${isOutOfStock ? 'text-red-500' : 'text-muted-foreground'}`}>
-                Stock: {stockQuantity}
+                Stock: {availableStock}
               </p>
             )}
           </div>
@@ -836,7 +1009,7 @@ function ProductCard({
                 size="sm"
                 variant="outline"
                 onClick={() => onQuickAdd(2)}
-                disabled={stockQuantity !== undefined && stockQuantity < 2}
+                disabled={availableStock < 2}
               >
                 2x
               </Button>
@@ -845,7 +1018,7 @@ function ProductCard({
                 size="sm"
                 variant="outline"
                 onClick={() => onQuickAdd(5)}
-                disabled={stockQuantity !== undefined && stockQuantity < 5}
+                disabled={availableStock < 5}
               >
                 5x
               </Button>
@@ -872,20 +1045,27 @@ function ProductCard({
 function ProductListItem({
   product,
   onAdd,
-  onQuickAdd
+  onQuickAdd,
+  cart,
+  originalProducts,
 }: {
   product: Product
   onAdd: () => void
   onQuickAdd: (quantity: number) => void
+  cart: CartItem[]
+  originalProducts: Product[]
 }) {
   const productWithStock = product as ProductWithStock
-  const stockQuantity = productWithStock.stock_quantity
-  const isOutOfStock = stockQuantity !== undefined && stockQuantity <= 0
+  const originalStock = (originalProducts.find(p => p.id === product.id) as ProductWithStock)?.stock_quantity || 0
+  const cartItem = cart.find(item => item.product_id === product.id)
+  const cartQuantity = cartItem ? cartItem.quantity : 0
+  const availableStock = Math.max(0, originalStock - cartQuantity)
+  const isOutOfStock = availableStock <= 0
 
   return (
     <div className={`border rounded-lg p-3 flex items-center gap-4 hover:shadow-md transition-shadow ${isOutOfStock ? 'opacity-50' : ''}`}>
       {product.images?.[0] ? (
-        <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-md bg-secondary">
+        <div className="w-16 h-16 shrink-0 overflow-hidden rounded-md bg-secondary">
           <img
             src={product.images[0]}
             alt={product.name}
@@ -893,7 +1073,7 @@ function ProductListItem({
           />
         </div>
       ) : (
-        <div className="w-16 h-16 flex-shrink-0 bg-secondary rounded-md flex items-center justify-center">
+        <div className="w-16 h-16 shrink-0 bg-secondary rounded-md flex items-center justify-center">
           <Package className="h-6 w-6 text-muted-foreground" />
         </div>
       )}
@@ -909,9 +1089,9 @@ function ProductListItem({
 
           <div className="text-right ml-2">
             <p className="font-semibold">${product.price.toFixed(2)}</p>
-            {stockQuantity !== undefined && (
+            {originalStock !== undefined && (
               <p className={`text-xs ${isOutOfStock ? 'text-red-500' : 'text-muted-foreground'}`}>
-                Stock: {stockQuantity}
+                Stock: {availableStock}
               </p>
             )}
           </div>
@@ -933,7 +1113,7 @@ function ProductListItem({
               size="sm"
               variant="outline"
               onClick={() => onQuickAdd(2)}
-              disabled={stockQuantity !== undefined && stockQuantity < 2}
+              disabled={availableStock < 2}
             >
               2x
             </Button>
@@ -942,7 +1122,7 @@ function ProductListItem({
               size="sm"
               variant="outline"
               onClick={() => onQuickAdd(5)}
-              disabled={stockQuantity !== undefined && stockQuantity < 5}
+              disabled={availableStock < 5}
             >
               5x
             </Button>

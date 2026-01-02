@@ -4,7 +4,9 @@ import { NextResponse } from "next/server"
 
 export async function POST() {
   try {
+    // Add 'await' here
     const supabase = await createClient()
+    
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -13,7 +15,11 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data: vendor } = await supabase.from("vendors").select("*").eq("user_id", user.id).single()
+    const { data: vendor } = await supabase
+      .from("vendors")
+      .select("*")
+      .eq("user_id", user.id)
+      .single()
 
     if (!vendor) {
       return NextResponse.json({ error: "Vendor not found" }, { status: 404 })
@@ -38,7 +44,10 @@ export async function POST() {
       accountId = account.id
 
       // Save the account ID to the vendor record
-      await supabase.from("vendors").update({ stripe_account_id: accountId }).eq("id", vendor.id)
+      await supabase
+        .from("vendors")
+        .update({ stripe_account_id: accountId })
+        .eq("id", vendor.id)
     }
 
     // Create an account link for onboarding

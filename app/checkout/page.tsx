@@ -1,72 +1,3 @@
-// import { createClient } from "@/lib/supabase/server"
-// import { Header } from "@/components/header"
-// import { Footer } from "@/components/footer"
-// import { CheckoutForm } from "@/components/checkout/checkout-form"
-// import { redirect } from "next/navigation"
-// import Link from "next/link"
-// import { ArrowLeft } from "lucide-react"
-
-// export default async function CheckoutPage() {
-//   const supabase = await createClient()
-//   const {
-//     data: { user },
-//   } = await supabase.auth.getUser()
-
-//   if (!user) {
-//     redirect("/auth/login?redirect=/checkout")
-//   }
-
-//   const { data: cartItems } = await supabase
-//     .from("cart_items")
-//     .select(
-//       "*, product:products(*, vendor:vendors(id, store_name, slug, stripe_account_id, stripe_onboarding_complete))",
-//     )
-//     .eq("user_id", user.id)
-//     .order("created_at", { ascending: false })
-
-//   if (!cartItems || cartItems.length === 0) {
-//     redirect("/cart")
-//   }
-
-//   // Check if all vendors have Stripe connected
-//   const vendorsWithoutStripe = cartItems.filter((item) => !item.product?.vendor?.stripe_onboarding_complete)
-
-//   return (
-//     <div className="min-h-screen flex flex-col bg-background">
-//       <Header />
-//       <main className="flex-1">
-//         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-//           <Link
-//             href="/cart"
-//             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-//           >
-//             <ArrowLeft className="h-4 w-4" />
-//             Back to cart
-//           </Link>
-
-//           <h1 className="text-3xl font-semibold tracking-tight">Checkout</h1>
-
-//           {vendorsWithoutStripe.length > 0 ? (
-//             <div className="mt-8 rounded-lg border border-border bg-card p-8 text-center">
-//               <p className="text-muted-foreground">
-//                 Some vendors in your cart haven&apos;t completed their payment setup yet. Please try again later or
-//                 remove those items from your cart.
-//               </p>
-//               <div className="mt-4">
-//                 <Link href="/cart" className="text-sm text-foreground underline-offset-4 hover:underline">
-//                   Return to cart
-//                 </Link>
-//               </div>
-//             </div>
-//           ) : (
-//             <CheckoutForm cartItems={cartItems} />
-//           )}
-//         </div>
-//       </main>
-//       <Footer />
-//     </div>
-//   )
-// }
 import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -76,7 +7,9 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
 export default async function CheckoutPage() {
+  // Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -105,10 +38,10 @@ export default async function CheckoutPage() {
   // Check if all vendors have Stripe connected (only enforce in production)
   const vendorsWithoutStripe = isDemoMode 
     ? [] // In demo mode, ignore vendor Stripe requirements
-    : cartItems.filter((item) => !item.product?.vendor?.stripe_onboarding_complete)
+    : cartItems.filter((item: any) => !item.product?.vendor?.stripe_onboarding_complete)
 
   // Show demo mode notice
-  const hasDemoVendors = cartItems.some((item) => !item.product?.vendor?.stripe_onboarding_complete)
+  const hasDemoVendors = cartItems.some((item: any) => !item.product?.vendor?.stripe_onboarding_complete)
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

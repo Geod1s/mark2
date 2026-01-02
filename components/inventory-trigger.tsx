@@ -12,7 +12,7 @@ interface InventoryTriggerProps {
 }
 
 export function InventoryTrigger({
-  initialLowStockThreshold = 5,
+  initialLowStockThreshold = 10,
   initialOverstockThreshold = 100
 }: InventoryTriggerProps) {
   const [lowStockThreshold, setLowStockThreshold] = useState(initialLowStockThreshold)
@@ -61,7 +61,7 @@ export function InventoryTrigger({
                 min="1"
                 max="50"
                 value={lowStockThreshold}
-                onChange={(e) => setLowStockThreshold(parseInt(e.target.value) || 5)}
+                onChange={(e) => setLowStockThreshold(parseInt(e.target.value) || 10)}
                 className="w-16 px-2 py-1 text-sm border rounded bg-background"
               />
               <span className="text-sm">units</span>

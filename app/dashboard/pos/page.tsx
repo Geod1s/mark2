@@ -3,8 +3,13 @@ import { DashboardLayout } from "@/components/dashboard/layout"
 import { redirect } from "next/navigation"
 import { POSInterface } from "@/components/dashboard/pos-interface"
 
+
+
+
 export default async function POSPage() {
+  // Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -13,7 +18,14 @@ export default async function POSPage() {
     redirect("/auth/login?redirect=/dashboard/pos")
   }
 
-  const { data: vendor } = await supabase.from("vendors").select("*").eq("user_id", user.id).maybeSingle()
+
+
+  
+  const { data: vendor } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle()
 
   if (!vendor) {
     redirect("/become-vendor")
@@ -38,8 +50,12 @@ export default async function POSPage() {
         <POSInterface 
           vendor={vendor} 
           products={products || []} 
+          
         />
+        
       </div>
+      
     </DashboardLayout>
   )
 }
+

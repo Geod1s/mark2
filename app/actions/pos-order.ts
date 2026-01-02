@@ -16,6 +16,7 @@ interface CreatePOSOrderInput {
 }
 
 export async function createPOSOrder(orderData: CreatePOSOrderInput) {
+  // Add 'await' here
   const supabase = await createClient()
   
   // Get the current user to verify they own the vendor

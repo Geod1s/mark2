@@ -4,7 +4,7 @@ import { ProductForm } from "@/components/dashboard/product-form"
 import { redirect } from "next/navigation"
 
 export default async function NewProductPage() {
-  const supabase = await createClient()
+  const supabase = await createClient() // Add await here
   const {
     data: { user },
   } = await supabase.auth.getUser()

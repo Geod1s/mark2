@@ -9,7 +9,10 @@ interface EditProductPageProps {
 
 export default async function EditProductPage({ params }: EditProductPageProps) {
   const { id } = await params
+  
+  // Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -18,7 +21,11 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     redirect("/auth/login?redirect=/dashboard/products")
   }
 
-  const { data: vendor } = await supabase.from("vendors").select("*").eq("user_id", user.id).maybeSingle()
+  const { data: vendor } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle()
 
   if (!vendor) {
     redirect("/become-vendor")
@@ -35,7 +42,10 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     notFound()
   }
 
-  const { data: categories } = await supabase.from("categories").select("*").order("name")
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("*")
+    .order("name")
 
   return (
     <DashboardLayout vendor={vendor}>

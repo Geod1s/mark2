@@ -11,7 +11,9 @@ import { calculateInventoryMetrics } from "@/lib/inventory-utils"
 import { getVendorInventoryThresholds } from "@/lib/inventory-actions"
 
 export default async function ProductsPage() {
+  // IMPORTANT: Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -20,7 +22,11 @@ export default async function ProductsPage() {
     redirect("/auth/login?redirect=/dashboard/products")
   }
 
-  const { data: vendor } = await supabase.from("vendors").select("*").eq("user_id", user.id).maybeSingle()
+  const { data: vendor } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle()
 
   if (!vendor) {
     redirect("/become-vendor")
@@ -33,7 +39,7 @@ export default async function ProductsPage() {
     .order("created_at", { ascending: false })
 
   // Get vendor-specific inventory thresholds
-  const { lowStockThreshold, overstockThreshold } = await getVendorInventoryThresholds(vendor.id);
+  const { lowStockThreshold, overstockThreshold } = await getVendorInventoryThresholds(vendor.id)
 
   // Calculate inventory metrics
   const inventoryMetrics = calculateInventoryMetrics(
@@ -68,13 +74,16 @@ export default async function ProductsPage() {
           overstockThreshold={overstockThreshold}
         />
 
-        {/* Inventory Triggers */}
-        <InventoryTrigger
-          initialLowStockThreshold={lowStockThreshold}
-          initialOverstockThreshold={overstockThreshold}
-        />
+          {/* Inventory Triggers */}
+          {/* Pass vendorId so the dashboard InventoryTrigger loads vendor thresholds */}
+          <InventoryTrigger vendorId={vendor.id} />
 
-        <ProductsList products={products || []} vendorId={vendor.id} />
+        <ProductsList
+          products={products || []}
+          vendorId={vendor.id}
+          lowStockThreshold={lowStockThreshold}
+          overstockThreshold={overstockThreshold}
+        />
       </div>
     </DashboardLayout>
   )

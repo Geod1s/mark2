@@ -6,23 +6,27 @@ import { CategoriesSection } from "@/components/home/categories-section"
 import { FeaturedProducts } from "@/components/home/featured-products"
 import { FeaturedVendors } from "@/components/home/featured-vendors"
 import BecomeVendorPage from "./become-vendor/page"
+
 export default async function HomePage() {
   const supabase = await createClient()
 
   // Check if user is authenticated
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data, error } = await supabase.auth.getUser()
+  const user = data?.user || null
 
   // If not authenticated, redirect to login page
-  if (!user) {
+  if (error || !user) {
     redirect('/auth/login')
   }
 
+  const categoriesQuery = supabase.from("categories").select("*").limit(8) as any
+  const productsQuery = supabase.from("products").select("*, vendor:vendors(id, store_name, slug)").eq("is_active", true).limit(8) as any
+  const vendorsQuery = supabase.from("vendors").select("*").eq("is_active", true).limit(4) as any
+
   const [categoriesResult, productsResult, vendorsResult] = await Promise.all([
-    supabase.from("categories").select("*").limit(8),
-    supabase.from("products").select("*, vendor:vendors(id, store_name, slug)").eq("is_active", true).limit(8),
-    supabase.from("vendors").select("*").eq("is_active", true).limit(4),
+    categoriesQuery,
+    productsQuery,
+    vendorsQuery,
   ])
 
   const categories = categoriesResult.data || []
@@ -31,7 +35,7 @@ export default async function HomePage() {
 
   return (
     <>
-    <BecomeVendorPage />
+      <BecomeVendorPage />
       {/* <HeroSection />
       <CategoriesSection categories={categories} />
       <FeaturedProducts products={products} />

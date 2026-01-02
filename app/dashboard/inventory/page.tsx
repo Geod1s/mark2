@@ -14,17 +14,11 @@ import { RealTimeSync } from "@/components/real-time-sync"
 import { OrderRoutingRules } from "@/components/order-routing-rules"
 import { BOPISManager } from "@/components/bopis-manager"
 import { getInventoryLocations, getInventorySyncConfigs } from "@/lib/inventory-actions"
-import {
-  updateInventoryLocationsAction,
-  updateInventorySyncConfigsAction,
-  toggleBOPISAction,
-  toggleLocationBOPISAction,
-  updateOrderRoutingRuleAction,
-  toggleRealTimeSyncAction
-} from "@/lib/inventory-server-actions"
 
 export default async function OmniInventoryDashboardPage() {
+  // Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -33,7 +27,11 @@ export default async function OmniInventoryDashboardPage() {
     redirect("/auth/login?redirect=/dashboard")
   }
 
-  const { data: vendor } = await supabase.from("vendors").select("*").eq("user_id", user.id).maybeSingle()
+  const { data: vendor } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle()
 
   if (!vendor) {
     redirect("/become-vendor")
@@ -48,20 +46,19 @@ export default async function OmniInventoryDashboardPage() {
 
   // Calculate inventory metrics
   const totalProducts = allProducts?.length || 0
-  const outOfStockCount = allProducts?.filter(p => (p.inventory_count || 0) <= 0).length || 0
-  const lowStockCount = allProducts?.filter(p => (p.inventory_count || 0) > 0 && (p.inventory_count || 0) <= 5).length || 0
-  const overstockCount = allProducts?.filter(p => (p.inventory_count || 0) >= 100).length || 0
+  const outOfStockCount = allProducts?.filter((p: { inventory_count: number }) => (p.inventory_count || 0) <= 0).length || 0
+  const lowStockCount = allProducts?.filter((p: { inventory_count: number }) => (p.inventory_count || 0) > 0 && (p.inventory_count || 0) <= 5).length || 0
+  const overstockCount = allProducts?.filter((p: { inventory_count: number }) => (p.inventory_count || 0) >= 100).length || 0
 
   // Fetch inventory locations
   const locations = await getInventoryLocations(vendor.id)
   
-  const activeLocations = locations?.filter(loc => loc.is_active).length || 0
-  const pickupLocations = locations?.filter(loc => loc.is_pickup_location).length || 0
-  const shippingOrigins = locations?.filter(loc => loc.is_shipping_origin).length || 0
+  const activeLocations = locations?.filter((loc: InventoryLocation) => loc.is_active).length || 0
+  const pickupLocations = locations?.filter((loc: InventoryLocation) => loc.is_pickup_location).length || 0
+  const shippingOrigins = locations?.filter((loc: InventoryLocation) => loc.is_shipping_origin).length || 0
 
   // Fetch sync configurations
   const syncConfigs = await getInventorySyncConfigs(vendor.id)
-
 
   return (
     <div className="space-y-6">
@@ -127,7 +124,7 @@ export default async function OmniInventoryDashboardPage() {
       {/* Inventory Triggers and Omnichannel Features */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <InventoryTrigger 
-          initialLowStockThreshold={5}
+          initialLowStockThreshold={10}
           initialOverstockThreshold={100}
         />
         

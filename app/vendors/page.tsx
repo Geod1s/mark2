@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Store } from "lucide-react"
 
 export default async function VendorsPage() {
-  const supabase = await createClient()
+  const supabase = createClient()
   const { data: vendors } = await supabase
     .from("vendors")
     .select("*")

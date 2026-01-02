@@ -4,7 +4,9 @@ import { StoreSettings } from "@/components/dashboard/store-settings"
 import { redirect } from "next/navigation"
 
 export default async function SettingsPage() {
+  // Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -13,7 +15,11 @@ export default async function SettingsPage() {
     redirect("/auth/login?redirect=/dashboard/settings")
   }
 
-  const { data: vendor } = await supabase.from("vendors").select("*").eq("user_id", user.id).maybeSingle()
+  const { data: vendor } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle()
 
   if (!vendor) {
     redirect("/become-vendor")

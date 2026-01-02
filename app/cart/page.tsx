@@ -5,7 +5,9 @@ import { CartItems } from "@/components/cart/cart-items"
 import { redirect } from "next/navigation"
 
 export default async function CartPage() {
+  // Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()

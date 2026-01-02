@@ -1,22 +1,30 @@
 import { createClient } from "@/lib/supabase/server"
 import { stripe } from "@/lib/stripe"
+import { NextResponse } from "next/server"
 import { redirect } from "next/navigation"
 
 export async function GET() {
   try {
+    // Add 'await' here
     const supabase = await createClient()
+    
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return redirect("/auth/login")
+      // Use NextResponse.redirect for API routes
+      return NextResponse.redirect(new URL("/auth/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"))
     }
 
-    const { data: vendor } = await supabase.from("vendors").select("stripe_account_id").eq("user_id", user.id).single()
+    const { data: vendor } = await supabase
+      .from("vendors")
+      .select("stripe_account_id")
+      .eq("user_id", user.id)
+      .single()
 
     if (!vendor?.stripe_account_id) {
-      return redirect("/dashboard/payments?error=no_account")
+      return NextResponse.redirect(new URL("/dashboard/payments?error=no_account", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"))
     }
 
     // Check the account status
@@ -24,14 +32,17 @@ export async function GET() {
 
     // Check if onboarding is complete
     if (account.charges_enabled && account.payouts_enabled) {
-      await supabase.from("vendors").update({ stripe_onboarding_complete: true }).eq("user_id", user.id)
+      await supabase
+        .from("vendors")
+        .update({ stripe_onboarding_complete: true })
+        .eq("user_id", user.id)
 
-      return redirect("/dashboard/payments?success=true")
+      return NextResponse.redirect(new URL("/dashboard/payments?success=true", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"))
     }
 
-    return redirect("/dashboard/payments?pending=true")
+    return NextResponse.redirect(new URL("/dashboard/payments?pending=true", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"))
   } catch (error) {
     console.error("Stripe Connect callback error:", error)
-    return redirect("/dashboard/payments?error=callback_failed")
+    return NextResponse.redirect(new URL("/dashboard/payments?error=callback_failed", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"))
   }
 }

@@ -4,7 +4,7 @@ import { Footer } from "@/components/footer"
 import Link from "next/link"
 
 export default async function CategoriesPage() {
-  const supabase = await createClient()
+  const supabase = createClient()
   const { data: categories } = await supabase.from("categories").select("*").order("name", { ascending: true })
 
   return (

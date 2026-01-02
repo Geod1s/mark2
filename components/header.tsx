@@ -5,7 +5,9 @@ import { ShoppingCart, Store, Search } from "lucide-react"
 import { HeaderAuth } from "./header-auth"
 
 export async function Header() {
+  // Add 'await' here
   const supabase = await createClient()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -14,11 +16,19 @@ export async function Header() {
   let vendor = null
 
   if (user) {
-    const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle()
     profile = profileData
 
     if (profile?.role === "vendor") {
-      const { data: vendorData } = await supabase.from("vendors").select("*").eq("user_id", user.id).maybeSingle()
+      const { data: vendorData } = await supabase
+        .from("vendors")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle()
       vendor = vendorData
     }
   }

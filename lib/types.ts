@@ -52,6 +52,7 @@ export interface Product {
   category?: Category
   stock_quantity?: number
   sku?: string
+  barcode?: string
   production_date?: string
   expiration_date?: string
 }

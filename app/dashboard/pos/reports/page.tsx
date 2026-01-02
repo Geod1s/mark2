@@ -8,12 +8,28 @@ import { SimpleDateRangePicker } from "@/components/ui/date-range-picker"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DollarSign, TrendingUp, Users, Package } from "lucide-react"
 
+interface POSOrder {
+  id: string;
+  total_amount: number | string;
+  created_at: string;
+  items: any[] | string;
+  customer_name?: string;
+  payment_method: string;
+  status: string;
+  is_pos_order: boolean;
+}
+
+interface OrderItem {
+  quantity: number;
+  [key: string]: any;
+}
+
 export default function POSReportsPage() {
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: new Date(new Date().setDate(new Date().getDate() - 7)),
     to: new Date()
   })
-  const [posOrders, setPosOrders] = useState<any[]>([])
+  const [posOrders, setPosOrders] = useState<POSOrder[]>([])
   const [stats, setStats] = useState({
     totalSales: 0,
     totalRevenue: 0,
@@ -39,13 +55,17 @@ export default function POSReportsPage() {
       .order('created_at', { ascending: false })
 
     if (orders) {
-      setPosOrders(orders)
+      setPosOrders(orders as POSOrder[])
       
-      // Calculate stats
-      const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total_amount), 0)
-      const itemsSold = orders.reduce((sum, order) => {
-        const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items)
-        return sum + items.reduce((itemSum: number, item: any) => itemSum + item.quantity, 0)
+      // Calculate stats with explicit types
+      const totalRevenue = orders.reduce((sum: number, order: POSOrder) => 
+        sum + Number(order.total_amount || 0), 0)
+      
+      const itemsSold = orders.reduce((sum: number, order: POSOrder) => {
+        const items = Array.isArray(order.items) ? order.items : 
+                     (typeof order.items === 'string' ? JSON.parse(order.items) : [])
+        return sum + items.reduce((itemSum: number, item: OrderItem) => 
+          itemSum + (item.quantity || 0), 0)
       }, 0)
       
       setStats({
@@ -61,15 +81,19 @@ export default function POSReportsPage() {
 
   const exportToCSV = () => {
     const headers = ["Order ID", "Date", "Customer", "Items", "Total", "Payment Method", "Status"]
-    const rows = posOrders.map(order => [
-      order.id.slice(0, 8),
-      new Date(order.created_at).toLocaleString(),
-      order.customer_name || "Walk-in",
-      Array.isArray(order.items) ? order.items.length : JSON.parse(order.items).length,
-      `$${Number(order.total_amount).toFixed(2)}`,
-      order.payment_method,
-      order.status
-    ])
+    const rows = posOrders.map(order => {
+      const items = Array.isArray(order.items) ? order.items : 
+                   (typeof order.items === 'string' ? JSON.parse(order.items) : [])
+      return [
+        order.id.slice(0, 8),
+        new Date(order.created_at).toLocaleString(),
+        order.customer_name || "Walk-in",
+        items.length,
+        `$${Number(order.total_amount || 0).toFixed(2)}`,
+        order.payment_method,
+        order.status
+      ]
+    })
     
     const csvContent = [
       headers.join(","),
@@ -176,14 +200,15 @@ export default function POSReportsPage() {
               </TableHeader>
               <TableBody>
                 {posOrders.map((order) => {
-                  const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items)
+                  const items = Array.isArray(order.items) ? order.items : 
+                               (typeof order.items === 'string' ? JSON.parse(order.items) : [])
                   return (
                     <TableRow key={order.id}>
                       <TableCell className="font-mono text-sm">#{order.id.slice(0, 8)}</TableCell>
                       <TableCell>{new Date(order.created_at).toLocaleString()}</TableCell>
                       <TableCell>{order.customer_name || "Walk-in"}</TableCell>
                       <TableCell>{items.length} items</TableCell>
-                      <TableCell className="font-medium">${Number(order.total_amount).toFixed(2)}</TableCell>
+                      <TableCell className="font-medium">${Number(order.total_amount || 0).toFixed(2)}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${order.payment_method === 'cash' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}`}>
                           {order.payment_method === 'cash' ? 'Cash' : 'Card'}

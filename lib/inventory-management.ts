@@ -5,7 +5,7 @@ import { InventoryLocation, InventoryLocationProduct, InventoryMovement, Invento
 
 // Create a new inventory location
 export async function createInventoryLocation(locationData: Omit<InventoryLocation, 'id' | 'created_at' | 'updated_at' | 'vendor_id'>, vendorId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('inventory_locations')
@@ -27,7 +27,7 @@ export async function createInventoryLocation(locationData: Omit<InventoryLocati
 
 // Get all inventory locations for a vendor
 export async function getInventoryLocations(vendorId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('inventory_locations')
@@ -44,7 +44,7 @@ export async function getInventoryLocations(vendorId: string) {
 
 // Update an inventory location
 export async function updateInventoryLocation(locationId: string, updates: Partial<InventoryLocation>) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('inventory_locations')
@@ -65,7 +65,7 @@ export async function updateInventoryLocation(locationId: string, updates: Parti
 
 // Delete an inventory location
 export async function deleteInventoryLocation(locationId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { error } = await supabase
     .from('inventory_locations')
@@ -81,7 +81,7 @@ export async function deleteInventoryLocation(locationId: string) {
 
 // Get inventory for a specific location
 export async function getLocationInventory(locationId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('inventory_location_products')
@@ -100,7 +100,7 @@ export async function getLocationInventory(locationId: string) {
 
 // Update inventory quantity at a specific location
 export async function updateLocationInventory(locationId: string, productId: string, quantity: number) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // First, try to update existing record
   const { data: existing, error: updateError } = await supabase
@@ -154,7 +154,7 @@ export async function transferInventory(
   reason: string,
   userId: string
 ) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Check if there's enough inventory at the source location
   const { data: sourceInventory, error: sourceError } = await supabase
@@ -203,7 +203,7 @@ export async function transferInventory(
 
 // Record an inventory movement
 export async function recordInventoryMovement(movementData: Omit<InventoryMovement, 'id' | 'created_at'>) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('inventory_movements')
@@ -224,7 +224,7 @@ export async function recordInventoryMovement(movementData: Omit<InventoryMoveme
 
 // Get inventory movements for a product
 export async function getProductInventoryMovements(productId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('inventory_movements')
@@ -248,7 +248,7 @@ export async function getProductInventoryMovements(productId: string) {
 
 // Get inventory across all locations for a product
 export async function getProductInventoryAcrossLocations(productId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('inventory_location_products')
@@ -269,7 +269,7 @@ export async function getProductInventoryAcrossLocations(productId: string) {
 
 // Reserve inventory for an order (for BOPIS or other fulfillment)
 export async function reserveInventory(locationId: string, productId: string, quantity: number, orderId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Get current inventory
   const { data: inventory, error } = await supabase
@@ -321,7 +321,7 @@ export async function reserveInventory(locationId: string, productId: string, qu
 
 // Release reserved inventory (when order is cancelled)
 export async function releaseReservedInventory(locationId: string, productId: string, quantity: number, orderId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Get current inventory
   const { data: inventory, error } = await supabase
@@ -362,7 +362,7 @@ export async function releaseReservedInventory(locationId: string, productId: st
 
 // Fulfill reserved inventory (when order is shipped/picked up)
 export async function fulfillReservedInventory(locationId: string, productId: string, quantity: number, orderId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Get current inventory
   const { data: inventory, error } = await supabase
@@ -404,7 +404,7 @@ export async function fulfillReservedInventory(locationId: string, productId: st
 
 // Get total inventory across all locations for a vendor
 export async function getTotalInventoryForVendor(vendorId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // First get all locations for the vendor
   const { data: locations } = await supabase
@@ -438,7 +438,7 @@ export async function getTotalInventoryForVendor(vendorId: string) {
 
 // Create or update inventory sync configuration
 export async function upsertInventorySyncConfig(config: Omit<InventorySyncConfig, 'id' | 'created_at' | 'updated_at'>) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('inventory_sync_configs')
@@ -460,7 +460,7 @@ export async function upsertInventorySyncConfig(config: Omit<InventorySyncConfig
 
 // Get inventory sync configurations for a vendor
 export async function getInventorySyncConfigs(vendorId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('inventory_sync_configs')
